@@ -1,3 +1,4 @@
+```
 enum ContentType {
     ARTICLE = 0,
     LIVEBLOG = 1,
@@ -8,9 +9,11 @@ enum ContentType {
     CROSSWORD = 6,
     AUDIO = 7
 }
+```
 
 compiles to
 
+```
 sealed abstract class ContentType(val value: Int) extends ThriftEnum(value)
 
 object ContentType {
@@ -35,65 +38,87 @@ object ContentType {
     case _ => None
   }
 }
+```
 
--------
-
+---
+```
 struct Rights {
     1: optional bool syndicatable = false
     2: optional bool subscriptionDatabases = false
     optional bool developerCommunity = false
 }
+```
 
 compiles to
 
+```
 case class Rights(
   syndicatable         : Option[Boolean] with 1.type = Some(false),
   subscriptionDatabases: Option[Boolean] with 2.type = Some(false),
   developerCommunity   : Option[Boolean] with -1.type = Some(false)
 ) extends ThriftStruct
+```
 
-the translation is literal for base types, i.e. an optional field of type A
-becomes an Option[A] and a required field of type A becomes an A. Container
+the translation is literal for base types, i.e. an optional field of type `A`
+becomes an `Option[A]` and a required field of type `A` becomes an `A`. Container
 types embody the notion of emptiness so there is no need to wrap them in an
-Option:
+`Option`:
 
-  optional list<i32> ints
+```
+  optional list<i32> ints
+```
 
 becomes
 
-  ints: List[Int] = List[Int].empty
+```
+  ints: List[Int] = List[Int].empty
+```
 
--------
-
+---
+```
 namespace java com.gu.contentapi.client.model.v1
+```
 
 becomes
 
+```
 package com.gu.contentapi.client.model.v1
+```
 
--------
+---
 
+```
 include "story_package_article.thrift"
+```
 
 becomes
 
+```
 import <resolve package name by parsing thrift file and extracting the correct namespace>
+```
 
 e.g.
 
+```
 import com.gu.contentapi.storypackage
+```
 
 - this process can be lazy, to avoid the cost of parsing files when they are unused
 - the tip of the package will be spliced in replacement of the thrift definition name, i.e.
 
-  story_package_article.Story
+```
+  story_package_article.Story
+```
 
 becomes
 
-  storypackage.Story
+```
+  storypackage.Story
+```
 
---------
+---
 
+```
 union AtomData {
   1: quiz.QuizAtom quiz
   media.MediaAtom media
@@ -108,9 +133,11 @@ union AtomData {
   12: profile.ProfileAtom profile
   13: timeline.TimelineAtom timeline
 }
+```
 
 becomes
 
+```
 sealed abstract class AtomData[A] extends ThriftStruct {
   def quiz: Some[A] = None
   def media: Some[A] = None
@@ -161,11 +188,17 @@ case class Profile        extends AtomData[profile.ProfileAtom with 12.type] {
 case class Timeline       extends AtomData[timeline.TimelineAtom with 13.type] {
   override def timeline = Some(this) 
 }
+```
 
---------
+---
 
+```
 typedef Datetime string
+```
 
 becomes
 
+```
 case class Datetime(value: String) extends AnyVal
+```
+types embody the notion of emptiness so there is no need to wrap them in an
