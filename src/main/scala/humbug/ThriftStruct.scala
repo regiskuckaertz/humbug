@@ -1,0 +1,3 @@
+package humbug
+
+trait ThriftStruct

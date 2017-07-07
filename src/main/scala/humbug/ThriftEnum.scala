@@ -1,4 +1,4 @@
-package com.gu.thrift
+package humbug
 
 trait ThriftEnum {
   def value: Int

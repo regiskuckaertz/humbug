@@ -1,4 +1,4 @@
-package com.gu.thrift
+package humbug
 package tests
 
 import com.gu.thrift_, com.gu.thrift.codec._

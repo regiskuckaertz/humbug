@@ -1,4 +1,4 @@
-package com.gu.thrift
+package humbug
 
 package object codec {
 
@@ -7,7 +7,7 @@ package object codec {
   def longToZigZag(n: Long): Long = (n << 1) ^ (n >> 63)
 
   def zigzagToInt(n: Int): Int = (n >>> 1) ^ - (n & 1)
-  
+
   def zigzagToLong(n: Long): Long = (n >>> 1) ^ - (n & 1)
 
   def varIntToInt(bs: Stream[Byte]): (Int, Stream[Byte]) = {

@@ -1,4 +1,4 @@
-package com.gu.thrift
+package humbug
 package codec
 
 import scala.reflect.ClassTag

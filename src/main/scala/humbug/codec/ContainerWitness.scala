@@ -1,4 +1,4 @@
-package com.gu.thrift
+package humbug
 package codec
 
 sealed abstract class ContainerWitness[A](val value: Byte)
