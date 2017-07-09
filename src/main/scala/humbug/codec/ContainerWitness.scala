@@ -11,7 +11,7 @@ object ContainerWitness {
   implicit case object I32C     extends ContainerWitness[Int](8)
   implicit case object I64C     extends ContainerWitness[Long](10)
   implicit case object StringC  extends ContainerWitness[String](11)
-  implicit case object BinaryC  extends ContainerWitness[Array[Byte]](11)
+  implicit case object BinaryC  extends ContainerWitness[Vector[Byte]](11)
   implicit case object StructC  extends ContainerWitness[ThriftStruct](12)
   implicit case object MapC     extends ContainerWitness[Map[_, _]](13)
   implicit case object SetC     extends ContainerWitness[Set[_]](14)

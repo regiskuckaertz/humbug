@@ -16,7 +16,7 @@ object ThriftCompactReader
 
 trait ThriftCompactBaseReader {
   // i8 integers
-  implicit val i8Writer = new ThriftCompactWriter[Byte] {
+  implicit val i8Writer = new ThriftCompactReader[Byte] {
     def read(bs: Stream[Byte]): (Option[Byte], Stream[Byte]) = bs.head match {
       case 1 => (Some(bs.tail.head), bs.tail.tail)
     }
@@ -55,15 +55,15 @@ trait ThriftCompactBaseReader {
     }
   }
 
-  implicit val binaryReader = new ThriftCompactReader[Array[Byte]] {
-    def read(bs: Stream[Byte]): (Option[Array[Byte]], Stream[Byte]) = i32Reader.read(bs) match {
-      case (Some(i), s) => (Some(s.take(i).toArray), s.drop(i))
+  implicit val binaryReader = new ThriftCompactReader[Vector[Byte]] {
+    def read(bs: Stream[Byte]): (Option[Vector[Byte]], Stream[Byte]) = varIntToInt(bs) match {
+      case (i, s) => (Some(s.take(i).toVector), s.drop(i))
     }
   }
 
   implicit val stringReader = new ThriftCompactReader[String] {
     def read(bs: Stream[Byte]): (Option[String], Stream[Byte]) = binaryReader.read(bs) match {
-      case (Some(cs), s) => (Some(new String(cs, "UTF-8")), s)
+      case (Some(cs), s) => (Some(new String(cs.toArray, "UTF-8")), s)
     }
   }
 

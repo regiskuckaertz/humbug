@@ -28,8 +28,8 @@ object StructWitness {
   implicit case object DoubleW extends StructWitness[Double] {
     def value(b: Double): Byte = 7
   }
-  implicit case object BinaryW extends StructWitness[Array[Byte]] {
-    def value(b: Array[Byte]): Byte = 8
+  implicit case object BinaryW extends StructWitness[Vector[Byte]] {
+    def value(b: Vector[Byte]): Byte = 8
   }
   implicit case object StringW extends StructWitness[String] {
     def value(b: String): Byte = 8

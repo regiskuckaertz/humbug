@@ -45,8 +45,8 @@ trait ThriftCompactBaseWriter {
   // - byte length is the length of the byte array, using
   //   var int encoding (must be >= 0).
   // - bytes are the bytes of the byte array.
-  implicit val binaryWriter = new ThriftCompactWriter[Array[Byte]] {
-    def write(bs: Array[Byte]) = intToVarInt(bs.length) #::: bs.toStream
+  implicit val binaryWriter = new ThriftCompactWriter[Vector[Byte]] {
+    def write(bs: Vector[Byte]) = intToVarInt(bs.length) #::: bs.toStream
   }
 
   // Values of type double are first converted to an int64 according to the
@@ -59,7 +59,7 @@ trait ThriftCompactBaseWriter {
   // Strings are first writed to UTF-8, and then sent as binary.
   implicit val stringWriter = new ThriftCompactWriter[String] {
     def write(s: String) =
-      binaryWriter.write(s.getBytes("UTF-8"))
+      binaryWriter.write(s.getBytes("UTF-8").toVector)
   }
 
   // Element values of type bool are sent as an int8; true as 1 and false as 0.
