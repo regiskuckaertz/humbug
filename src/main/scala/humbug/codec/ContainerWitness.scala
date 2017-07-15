@@ -16,4 +16,7 @@ object ContainerWitness {
   implicit case object MapC     extends ContainerWitness[Map[_, _]](13)
   implicit case object SetC     extends ContainerWitness[Set[_]](14)
   implicit case object ListC    extends ContainerWitness[List[_]](15)
+
+  def getType[A](implicit w: ContainerWitness[A]): Byte =
+    w.value
 }

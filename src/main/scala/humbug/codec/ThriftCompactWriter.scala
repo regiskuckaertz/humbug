@@ -15,7 +15,7 @@ object ThriftCompactWriter
 trait ThriftCompactBaseWriter {
   // i8 integers are treated as binary strings of length 1
   implicit val i8Writer = new ThriftCompactWriter[Byte] {
-    def write(b: Byte) = (1: Byte) #:: b #:: Stream.empty
+    def write(b: Byte) = (1: Byte) #:: b #:: Stream.Empty
   }
 
   // i16 integers are coerced into i32s
@@ -37,8 +37,8 @@ trait ThriftCompactBaseWriter {
 
   // Enums: The generated code writes Enums by taking the ordinal
   // value and then encoding that as an int32.
-  implicit val enumWriter = new ThriftCompactWriter[ThriftEnum] {
-    def write(e: ThriftEnum) = i32Writer.write(e.value)
+  implicit def enumWriter[A <: ThriftEnum] = new ThriftCompactWriter[A] {
+    def write(e: A) = i32Writer.write(e.value)
   }
 
   // Binary is sent as follows: byte length ++ bytes, where
@@ -63,8 +63,8 @@ trait ThriftCompactBaseWriter {
   }
 
   // Element values of type bool are sent as an int8; true as 1 and false as 0.
-  val f: Stream[Byte] = (1: Byte) #:: (0: Byte) #:: Stream.empty
-  val t: Stream[Byte] = (1: Byte) #:: (1: Byte) #:: Stream.empty
+  val f: Stream[Byte] = (1: Byte) #:: (0: Byte) #:: Stream.Empty
+  val t: Stream[Byte] = (1: Byte) #:: (1: Byte) #:: Stream.Empty
   implicit val booleanWriter = new ThriftCompactWriter[Boolean] {
     def write(b: Boolean) = b match {
       case false => f
@@ -74,17 +74,14 @@ trait ThriftCompactBaseWriter {
 }
 
 trait ThriftCompactContainerWriter {
-  val emptyMap = (0: Byte) #:: Stream.empty
-
-  private def getType[A, F[_]](l: F[A])(implicit w: ContainerWitness[A]): Byte =
-    w.value
+  val emptyMap = (0: Byte) #:: Stream.Empty
 
   private def writeListHeader[A, F[_] <: Iterable[_]](
     l: F[A],
     et: Byte): Stream[Byte] = {
     val ls: Int = l.size
     if (ls < 15)
-      (ls << 4 | et).toByte #:: Stream.empty
+      ((ls << 4) | et).toByte #:: Stream.Empty
     else
       (0xF0 | et).toByte #:: intToVarInt(ls)
   }
@@ -92,35 +89,33 @@ trait ThriftCompactContainerWriter {
   private def writeListElements[A](l: List[A])(
     implicit
     enc: ThriftCompactWriter[A]): Stream[Byte] =
-    l.foldLeft(Stream.empty: Stream[Byte])((r, e) => enc.write(e) #::: r)
+    l.foldRight(Stream.Empty: Stream[Byte])((e: A, r: Stream[Byte]) => enc.write(e) #::: r)
 
   private def writeSetElements[A](l: Set[A])(
     implicit
     enc: ThriftCompactWriter[A]): Stream[Byte] =
-    l.foldLeft(Stream.empty: Stream[Byte])((r, e) => enc.write(e) #::: r)
+    l.foldRight(Stream.Empty: Stream[Byte])((e: A, r: Stream[Byte]) => enc.write(e) #::: r)
 
   private def writeMapHeader[K : ContainerWitness, V : ContainerWitness](m: Map[K, V]) =
-    intToVarInt(m.size) :+ (
-      getType[K, ({ type λ[A] = Map[A, V] })#λ](m) << 4 |
-      getType[V, ({ type λ[A] = Map[K, A] })#λ](m)).toByte
+    intToVarInt(m.size) :+ ((ContainerWitness.getType[K] << 4) | ContainerWitness.getType[V]).toByte
 
   private def writeMapPairs[K, V](m: Map[K, V])(
     implicit
     kenc: ThriftCompactWriter[K],
     venc: ThriftCompactWriter[V]): Stream[Byte] =
-    m.foldLeft(Stream.empty: Stream[Byte]) {
+    m.foldLeft(Stream.Empty: Stream[Byte]) {
       case (r, (k, v)) =>
         kenc.write(k) #::: venc.write(v) #::: r
     }
 
   implicit def listWriter[A : ThriftCompactWriter : ContainerWitness] = new ThriftCompactWriter[List[A]] {
     def write(l: List[A]) =
-      writeListHeader(l, getType(l)) #::: writeListElements(l)
+      writeListHeader(l, ContainerWitness.getType[A]) #::: writeListElements(l)
   }
 
   implicit def setWriter[A : ThriftCompactWriter : ContainerWitness] = new ThriftCompactWriter[Set[A]] {
     def write(s: Set[A]) =
-      writeListHeader(s, getType(s)) #::: writeSetElements(s)
+      writeListHeader(s, ContainerWitness.getType[A]) #::: writeSetElements(s)
   }
 
   implicit def mapWriter[K : ThriftCompactWriter : ContainerWitness, V : ThriftCompactWriter : ContainerWitness] = new ThriftCompactWriter[Map[K, V]] {
@@ -141,7 +136,7 @@ trait ThriftCompactStructWriter {
     getFieldType(f) +: intToVarInt(fid)
 
   implicit val hnilWriter = new ThriftCompactWriter[HNil] {
-    def write(h: HNil): Stream[Byte] = stopField #:: Stream.empty
+    def write(h: HNil): Stream[Byte] = stopField #:: Stream.Empty
   }
 
   implicit def hconsWriter[K <: Int, V : StructWitness, T <: HList](

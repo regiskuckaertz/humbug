@@ -4,15 +4,16 @@ package tests
 import humbug.codec._
 import org.scalacheck._
 
+import Prop.forAll
+
 object ThriftCompactSpecification extends Properties("ThriftCompact") {
   include(BaseSpecification)
+  include(EnumSpecification)
   include(ContainerSpecification)
   include(StructSpecification)
 }
 
 object BaseSpecification extends Properties("Base Types") {
-  import Prop.{forAll, BooleanOperators, all}
-
   property("Bytes") = forAll { (x: Byte) =>
     implicit val R = implicitly[ThriftCompactReader[Byte]]
     implicit val W = implicitly[ThriftCompactWriter[Byte]]
@@ -78,8 +79,31 @@ object BaseSpecification extends Properties("Base Types") {
   }
 }
 
-object ContainerSpecification extends Properties("Container Types") {
+object EnumSpecification extends Properties("Enums") {
+  import samples._
 
+  property("Enums") = forAll(Gen.oneOf(0, 1, 2, 3, 4, 5, 6, 7)) { (x: Int) =>
+    implicit val TR = implicitly[ThriftEnumReader[ContentType]]
+    implicit val R = implicitly[ThriftCompactReader[ContentType]]
+    implicit val W = implicitly[ThriftCompactWriter[ContentType]]
+    TR.from(x) map { cx: ContentType =>
+      R.read(W.write(cx)) match {
+        case (Some(cy), _) => cx == cy
+        case _ => false
+      }
+    } getOrElse false
+  }
+}
+
+object ContainerSpecification extends Properties("Container Types") {
+  property("Lists") = forAll { (xs: List[String]) =>
+    implicit val R = implicitly[ThriftCompactReader[List[String]]]
+    implicit val W = implicitly[ThriftCompactWriter[List[String]]]
+    R.read(W.write(xs)) match {
+      case (Some(ys), _) => xs == ys
+      case (None, _) => false
+    }
+  }
 }
 
 object StructSpecification extends Properties("Structs") {
