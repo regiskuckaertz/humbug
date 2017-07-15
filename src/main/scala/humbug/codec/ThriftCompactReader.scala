@@ -126,7 +126,7 @@ trait ThriftCompactContainerReader {
     bs: Stream[Byte]
   ): (Option[Int], Stream[Byte]) =
     varIntToInt(bs) match {
-      case (i, h #:: bs) if h == ((ContainerWitness.getType[K] << 4) | ContainerWitness.getType[V]).toByte) => (Some(i), bs)
+      case (i, h #:: bs) if h == ((ContainerWitness.getType[K] << 4) | ContainerWitness.getType[V]).toByte => (Some(i), bs)
       case _ => (None, bs)
     }
 

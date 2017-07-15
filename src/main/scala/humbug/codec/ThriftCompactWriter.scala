@@ -76,10 +76,9 @@ trait ThriftCompactBaseWriter {
 trait ThriftCompactContainerWriter {
   val emptyMap = (0: Byte) #:: Stream.Empty
 
-  private def writeListHeader[A, F[_] <: Iterable[_]](
-    l: F[A],
-    et: Byte): Stream[Byte] = {
+  private def writeListHeader[A : ContainerWitness, F[_] <: Iterable[_]](l: F[A]): Stream[Byte] = {
     val ls: Int = l.size
+    val et: Byte = ContainerWitness.getType[A]
     if (ls < 15)
       ((ls << 4) | et).toByte #:: Stream.Empty
     else
@@ -110,17 +109,17 @@ trait ThriftCompactContainerWriter {
 
   implicit def listWriter[A : ThriftCompactWriter : ContainerWitness] = new ThriftCompactWriter[List[A]] {
     def write(l: List[A]) =
-      writeListHeader(l, ContainerWitness.getType[A]) #::: writeListElements(l)
+      writeListHeader(l) #::: writeListElements(l)
   }
 
   implicit def setWriter[A : ThriftCompactWriter : ContainerWitness] = new ThriftCompactWriter[Set[A]] {
     def write(s: Set[A]) =
-      writeListHeader(s, ContainerWitness.getType[A]) #::: writeSetElements(s)
+      writeListHeader(s) #::: writeSetElements(s)
   }
 
   implicit def mapWriter[K : ThriftCompactWriter : ContainerWitness, V : ThriftCompactWriter : ContainerWitness] = new ThriftCompactWriter[Map[K, V]] {
     def write(m: Map[K, V]) =
-      if (m.isEmpty) emptyMap else writeMapHeader(m) #::: writeMapPairs(m)
+      if (m.isEmpty) emptyMap else writeMapHeader[K, V](m) #::: writeMapPairs[K, V](m)
   }
 }
 
