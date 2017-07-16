@@ -76,10 +76,12 @@ trait ThriftCompactBaseReader {
 }
 
 trait ThriftCompactContainerReader {
-  private def readListHeader[A : ContainerWitness, F[_] <: Iterable[_]](
-    bs: Stream[Byte]): (Option[Int], Stream[Byte]) = {
+  private def readListHeader[A, F[_] <: Iterable[_]](
+    bs: Stream[Byte],
+    et: Int
+  ): (Option[Int], Stream[Byte]) = {
     val h: Byte = bs.head
-    if((h & 0x0F) != ContainerWitness.getType[A])
+    if((h & 0x0F) != et)
       (None, bs)
     else if((h & 0xF0) != 0xF0)
       (Some(h >>> 4), bs.tail)
@@ -122,11 +124,13 @@ trait ThriftCompactContainerReader {
     readSetElements_rec(bs, l, Set.empty[A])
   }
 
-  private def readMapHeader[K : ContainerWitness, V : ContainerWitness](
-    bs: Stream[Byte]
+  private def readMapHeader(
+    bs: Stream[Byte],
+    kt: Int,
+    vt: Int
   ): (Option[Int], Stream[Byte]) =
     varIntToInt(bs) match {
-      case (i, h #:: bs) if h == ((ContainerWitness.getType[K] << 4) | ContainerWitness.getType[V]).toByte => (Some(i), bs)
+      case (i, h #:: bs) if h == ((kt << 4) | vt).toByte => (Some(i), bs)
       case _ => (None, bs)
     }
 
@@ -148,27 +152,37 @@ trait ThriftCompactContainerReader {
     loop(bs, n, Map.empty)
   }
 
-  implicit def listReader[A : ThriftCompactReader : ContainerWitness] = new ThriftCompactReader[List[A]] {
+  implicit def listReader[A : ThriftCompactReader](
+    implicit
+    w: ContainerWitness[A]
+  ) = new ThriftCompactReader[List[A]] {
     def read(bs: Stream[Byte]): (Option[List[A]], Stream[Byte]) =
-      readListHeader(bs) match {
+      readListHeader(bs, w.value) match {
         case (Some(l), bs) => readListElements(bs, l)
         case _             => (None, bs)
       }
   }
 
-  implicit def setReader[A : ThriftCompactReader : ContainerWitness] = new ThriftCompactReader[Set[A]] {
+  implicit def setReader[A : ThriftCompactReader](
+    implicit
+    w: ContainerWitness[A]
+  ) = new ThriftCompactReader[Set[A]] {
     def read(bs: Stream[Byte]): (Option[Set[A]], Stream[Byte]) =
-      readListHeader(bs) match {
+      readListHeader(bs, w.value) match {
         case (Some(l), bs) => readSetElements(bs, l)
         case _             => (None, bs)
       }
   }
 
-  implicit def mapReader[K : ThriftCompactReader : ContainerWitness, V : ThriftCompactReader : ContainerWitness] =
+  implicit def mapReader[K : ThriftCompactReader, V : ThriftCompactReader](
+    implicit
+    wk: ContainerWitness[K],
+    wv: ContainerWitness[V]
+  ) =
     new ThriftCompactReader[Map[K, V]] {
       def read(bs: Stream[Byte]): (Option[Map[K, V]], Stream[Byte]) = bs match {
         case 0 #:: Stream.Empty => (Some(Map.empty), Stream.Empty)
-        case _ => readMapHeader[K, V](bs) match {
+        case _ => readMapHeader(bs, wk.value, wv.value) match {
           case (Some(n), bs) => readMapPairs[K, V](n, bs)
           case _             => (None, bs)
         }

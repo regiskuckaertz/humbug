@@ -76,9 +76,8 @@ trait ThriftCompactBaseWriter {
 trait ThriftCompactContainerWriter {
   val emptyMap = (0: Byte) #:: Stream.Empty
 
-  private def writeListHeader[A : ContainerWitness, F[_] <: Iterable[_]](l: F[A]): Stream[Byte] = {
+  private def writeListHeader[A, F[_] <: Iterable[_]](l: F[A], et: Int): Stream[Byte] = {
     val ls: Int = l.size
-    val et: Byte = ContainerWitness.getType[A]
     if (ls < 15)
       ((ls << 4) | et).toByte #:: Stream.Empty
     else
@@ -87,16 +86,18 @@ trait ThriftCompactContainerWriter {
 
   private def writeListElements[A](l: List[A])(
     implicit
-    enc: ThriftCompactWriter[A]): Stream[Byte] =
+    enc: ThriftCompactWriter[A]
+  ): Stream[Byte] =
     l.foldRight(Stream.Empty: Stream[Byte])((e: A, r: Stream[Byte]) => enc.write(e) #::: r)
 
   private def writeSetElements[A](l: Set[A])(
     implicit
-    enc: ThriftCompactWriter[A]): Stream[Byte] =
+    enc: ThriftCompactWriter[A]
+  ): Stream[Byte] =
     l.foldRight(Stream.Empty: Stream[Byte])((e: A, r: Stream[Byte]) => enc.write(e) #::: r)
 
-  private def writeMapHeader[K : ContainerWitness, V : ContainerWitness](m: Map[K, V]) =
-    intToVarInt(m.size) :+ ((ContainerWitness.getType[K] << 4) | ContainerWitness.getType[V]).toByte
+  private def writeMapHeader(m: Map[_, _], kt: Int, vt: Int): Stream[Byte] =
+    intToVarInt(m.size) :+ ((kt << 4) | vt).toByte
 
   private def writeMapPairs[K, V](m: Map[K, V])(
     implicit
@@ -107,19 +108,29 @@ trait ThriftCompactContainerWriter {
         kenc.write(k) #::: venc.write(v) #::: r
     }
 
-  implicit def listWriter[A : ThriftCompactWriter : ContainerWitness] = new ThriftCompactWriter[List[A]] {
+  implicit def listWriter[A : ThriftCompactWriter](
+    implicit
+    w: ContainerWitness[A]
+  ) = new ThriftCompactWriter[List[A]] {
     def write(l: List[A]) =
-      writeListHeader(l) #::: writeListElements(l)
+      writeListHeader(l, w.value) #::: writeListElements(l)
   }
 
-  implicit def setWriter[A : ThriftCompactWriter : ContainerWitness] = new ThriftCompactWriter[Set[A]] {
+  implicit def setWriter[A : ThriftCompactWriter](
+    implicit
+    w: ContainerWitness[A]
+  ) = new ThriftCompactWriter[Set[A]] {
     def write(s: Set[A]) =
-      writeListHeader(s) #::: writeSetElements(s)
+      writeListHeader(s, w.value) #::: writeSetElements(s)
   }
 
-  implicit def mapWriter[K : ThriftCompactWriter : ContainerWitness, V : ThriftCompactWriter : ContainerWitness] = new ThriftCompactWriter[Map[K, V]] {
+  implicit def mapWriter[K : ThriftCompactWriter, V : ThriftCompactWriter](
+    implicit
+    kw: ContainerWitness[K],
+    vw: ContainerWitness[V]
+  ) = new ThriftCompactWriter[Map[K, V]] {
     def write(m: Map[K, V]) =
-      if (m.isEmpty) emptyMap else writeMapHeader[K, V](m) #::: writeMapPairs[K, V](m)
+      if (m.isEmpty) emptyMap else writeMapHeader(m, kw.value, vw.value) #::: writeMapPairs(m)
   }
 }
 

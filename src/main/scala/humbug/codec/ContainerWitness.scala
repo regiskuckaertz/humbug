@@ -1,22 +1,32 @@
 package humbug
 package codec
 
-sealed abstract class ContainerWitness[A](val value: Byte)
+import shapeless._, shapeless.nat._, shapeless.ops.nat._
+
+trait ContainerWitness[A] {
+  type N <: Nat
+
+  def value: Int
+}
 
 object ContainerWitness {
-  implicit case object BooleanC extends ContainerWitness[Boolean](2)
-  implicit case object ByteC    extends ContainerWitness[Byte](3)
-  implicit case object DoubleC  extends ContainerWitness[Double](4)
-  implicit case object I16C     extends ContainerWitness[Short](6)
-  implicit case object I32C     extends ContainerWitness[Int](8)
-  implicit case object I64C     extends ContainerWitness[Long](10)
-  implicit case object StringC  extends ContainerWitness[String](11)
-  implicit case object BinaryC  extends ContainerWitness[Vector[Byte]](11)
-  implicit case object StructC  extends ContainerWitness[ThriftStruct](12)
-  implicit case object MapC     extends ContainerWitness[Map[_, _]](13)
-  implicit case object SetC     extends ContainerWitness[Set[_]](14)
-  implicit case object ListC    extends ContainerWitness[List[_]](15)
+  def mkContainerWitness[A, N0 <: Nat](implicit toInt: ToInt[N0]) =
+    new ContainerWitness[A] {
+      type N = N0
 
-  def getType[A](implicit w: ContainerWitness[A]): Byte =
-    w.value
+      val value: Int = toInt()
+    }
+
+  implicit val bow = mkContainerWitness[Boolean, _2]
+  implicit val byw = mkContainerWitness[Byte, _3]
+  implicit val dow = mkContainerWitness[Double, _4]
+  implicit val sow = mkContainerWitness[Short, _6]
+  implicit val inw = mkContainerWitness[Int, _8]
+  implicit val low = mkContainerWitness[Long, _10]
+  implicit val stw = mkContainerWitness[String, _11]
+  implicit val vbw = mkContainerWitness[Vector[Byte], _11]
+  implicit val tsw = mkContainerWitness[ThriftStruct, _12]
+  implicit val maw = mkContainerWitness[Map[_, _], _13]
+  implicit val sew = mkContainerWitness[Set[_], _14]
+  implicit val liw = mkContainerWitness[List[_], _15]
 }
