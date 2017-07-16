@@ -1,7 +1,7 @@
 package humbug
 package codec
 
-import shapeless._, shapeless.labelled._
+import shapeless._, shapeless.labelled._, shapeless.syntax.singleton._
 
 trait ThriftCompactWriter[T] {
   def write(t: T): Stream[Byte]
@@ -135,35 +135,43 @@ trait ThriftCompactContainerWriter {
 }
 
 trait ThriftCompactStructWriter {
-  private val stopField: Byte = 0
-  private val (wTrue, wFalse) = (Witness(true), Witness(false))
+  import internal._
 
-  private def getFieldType[T](f: T)(implicit w: StructWitness[T]) = w.value(f)
-
-  private def getFieldValue[K, V](f: FieldType[K, V]): V = f
-
-  private def writeFieldHeader[T : StructWitness](fid: Int, f: T): Stream[Byte] =
-    getFieldType(f) +: intToVarInt(fid)
-
-  implicit val hnilWriter = new ThriftCompactWriter[HNil] {
-    def write(h: HNil): Stream[Byte] = stopField #:: Stream.Empty
+  private def writeFieldHeader(pid: Int, cid: Int, tid: Int)(
+    implicit
+    intw: ThriftCompactWriter[Int]
+  ): Stream[Byte] = {
+    val delta: Int = cid - pid
+    if((delta & ~0x0F) == 0)
+      ((delta << 4) | tid).toByte #:: Stream.Empty
+    else
+      tid.toByte #:: intw.write(cid)
   }
 
-  implicit def hconsWriter[K <: Int, V : StructWitness, T <: HList](
+  private trait DeltaWriter[H <: HList] {
+    def write(t: H, pid: Int): Stream[Byte]
+  }
+
+  private implicit val hnilWriter = new DeltaWriter[HNil] {
+    def write(h: HNil, pid: Int): Stream[Byte] = (0: Byte) #:: Stream.Empty
+  }
+
+  private implicit def hconsWriter[H, K <: Int, T <: HList](
     implicit
-    w: Witness.Aux[K],
-    h: Lazy[ThriftCompactWriter[V]],
-    t: ThriftCompactWriter[T]) = new ThriftCompactWriter[FieldType[K, V] :: T] {
-    def write(v: FieldType[K, V] :: T) = getFieldValue(v.head) match {
-      case x: Boolean => writeFieldHeader(w.value, x) #::: t.write(v.tail)
-      case x => writeFieldHeader(w.value, x) #::: h.value.write(v.head) #::: t.write(v.tail)
-    }
+    he: Lazy[ThriftCompactWriter[H]],
+    hw: StructWitness[H],
+    kw: Witness.Aux[K],
+    te: DeltaWriter[T]
+  ) = new DeltaWriter[FieldType[K, H] :: T] {
+    def write(v: FieldType[K, H] :: T, pid: Int) =
+      writeFieldHeader(pid, kw.value, hw.value) #::: he.value.write(v.head) #::: te.write(v.tail, kw.value)
   }
 
   implicit def structWriter[T <: ThriftStruct, H <: HList](
     implicit
-    gen: LabelledGeneric.Aux[T, H],
-    wri: Lazy[ThriftCompactWriter[H]]) = new ThriftCompactWriter[T] {
-    def write(s: T) = wri.value.write(gen.to(s))
+    gen: PositionedGeneric.Aux[T, H],
+    wri: Lazy[DeltaWriter[H]]
+  ) = new ThriftCompactWriter[T] {
+    def write(s: T) = wri.value.write(gen.to(s), 0)
   }
 }

@@ -1,50 +1,38 @@
 package humbug
 package codec
 
-import shapeless._
+import shapeless._, shapeless.nat._, shapeless.ops.nat._
 
-sealed abstract class StructWitness[A] {
-  def value(a: A): Byte
+trait StructWitness[A] {
+  type N <: Nat
+
+  def value: Int
 }
 
 object StructWitness {
   val (wTrue, wFalse) = (Witness(true), Witness(false))
 
-  implicit case object TrueW   extends StructWitness[Boolean] {
-    def value(b: Boolean): Byte = if(b) 1 else 2
+  private def mkStructWitness[A, N0 <: Nat](
+    implicit
+    toInt: ToInt[N0]
+  ) = new StructWitness[A] {
+    type N = N0
+
+    val value = toInt()
   }
-  implicit case object ByteW   extends StructWitness[Byte] {
-    def value(b: Byte): Byte = 3
-  }
-  implicit case object ShortW  extends StructWitness[Short] {
-    def value(b: Short): Byte = 4
-  }
-  implicit case object IntW    extends StructWitness[Int] {
-    def value(b: Int): Byte = 5
-  }
-  implicit case object LongW   extends StructWitness[Long] {
-    def value(b: Long): Byte = 6
-  }
-  implicit case object DoubleW extends StructWitness[Double] {
-    def value(b: Double): Byte = 7
-  }
-  implicit case object BinaryW extends StructWitness[Vector[Byte]] {
-    def value(b: Vector[Byte]): Byte = 8
-  }
-  implicit case object StringW extends StructWitness[String] {
-    def value(b: String): Byte = 8
-  }
-  implicit case object ListW   extends StructWitness[List[_]] {
-    def value(b: List[_]): Byte = 9
-  }
-  implicit case object SetW    extends StructWitness[Set[_]] {
-    def value(b: Set[_]): Byte = 10
-  }
-  implicit case object MapW    extends StructWitness[Map[_, _]] {
-    def value(b: Map[_, _]): Byte = 11
-  }
-  implicit case object StructW extends StructWitness[ThriftStruct] {
-    def value(b: ThriftStruct): Byte = 12
-  }
+
+  implicit val trw = mkStructWitness[wTrue.T, _1]
+  implicit val faw = mkStructWitness[wFalse.T, _2]
+  implicit val byw = mkStructWitness[Byte, _3]
+  implicit val shw = mkStructWitness[Short, _4]
+  implicit val inw = mkStructWitness[Int, _5]
+  implicit val low = mkStructWitness[Long, _6]
+  implicit val dow = mkStructWitness[Double, _7]
+  implicit val stw = mkStructWitness[String, _8]
+  implicit val vbw = mkStructWitness[Vector[Byte], _8]
+  implicit val liw = mkStructWitness[List[_], _9]
+  implicit val sew = mkStructWitness[Set[_], _10]
+  implicit val maw = mkStructWitness[Map[_, _], _11]
+  implicit val tsw = mkStructWitness[ThriftStruct, _12]
 
 }
