@@ -191,14 +191,54 @@ trait ThriftCompactContainerReader {
 }
 
 trait ThriftCompactStructReader {
-  val stopField: Byte = 0
+  import internal._
 
-  implicit def structReader[T <: ThriftStruct, R <: HList](
+  private def readFieldHeader(bs: Stream[Byte], pid: Int)(
     implicit
-    gen: LabelledGeneric.Aux[T, R],
-    reader: Lazy[ThriftCompactReader[R]]
+    intr: ThriftCompactReader[Int]
+  ): (Int, Int, Stream[Byte]) = {
+    val h: Byte = bs.head
+    if((h & 0x0F).toByte == 0)
+      intr.read(bs.tail) match {
+        case (Some(cid), bs) => (h, cid, bs)
+      }
+    else
+      (h & 0x0F, (h >>> 4) + pid, bs.tail)
+  }
+
+  private trait DeltaReader[H <: HList] {
+    def read(bs: Stream[Byte], pid: Int): (Option[H], Stream[Byte])
+  }
+
+  private implicit val hnilReader = new DeltaReader[HNil] {
+    def read(bs: Stream[Byte], pid: Int): (Option[HNil], Stream[Byte]) = bs match {
+      case 0 #:: bs => (Some(HNil), bs)
+    }
+  }
+
+  private implicit def hconsReader[H, K <: Int, T <: HList](
+    implicit
+    he: Lazy[ThriftCompactReader[H]],
+    hw: StructWitness[H],
+    kw: Witness.Aux[K],
+    te: DeltaReader[T]
+  ) = new DeltaReader[FieldType[K, H] :: T] {
+    def read(bs: Stream[Byte], pid: Int): (Option[FieldType[K, H] :: T], Stream[Byte]) =
+      readFieldHeader(bs, pid) match {
+        case (fid, cid, bs) if fid == hw.value && cid == kw.value => he.value.read(bs) match {
+          case (Some(v), bs) => te.read(bs, cid) match {
+            case (Some(t), bs) => (Some(field[kw.T](v) :: t), bs)
+          }
+        }
+      }
+  }
+
+  implicit def structReader[T <: ThriftStruct, H <: HList](
+    implicit
+    gen: PositionedGeneric.Aux[T, H],
+    reader: Lazy[DeltaReader[H]]
   ) = new ThriftCompactReader[T] {
-    def read(bs: Stream[Byte]): (Option[T], Stream[Byte]) = reader.value.read(bs) match {
+    def read(bs: Stream[Byte]): (Option[T], Stream[Byte]) = reader.value.read(bs, 0) match {
       case (Some(x), rs) => (Some(gen.from(x)), rs)
     }
   }
