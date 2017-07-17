@@ -26,16 +26,18 @@ object ContentType {
   case object CROSSWORD   extends ContentType(6)
   case object AUDIO       extends ContentType(7)
 
-  val apply: Int => Option[ContentType] = {
-    case 0 => Some(ARTICLE)
-    case 1 => Some(LIVEBLOG)
-    case 2 => Some(GALLERY)
-    case 3 => Some(INTERACTIVE)
-    case 4 => Some(PICTURE)
-    case 5 => Some(VIDEO)
-    case 6 => Some(CROSSWORD)
-    case 7 => Some(AUDIO)
-    case _ => None
+  implicit reader = new ThriftEnumReader[ContentType] {
+    def from(x: Int): Option[ContentType] = {
+      case 0 => Some(ARTICLE)
+      case 1 => Some(LIVEBLOG)
+      case 2 => Some(GALLERY)
+      case 3 => Some(INTERACTIVE)
+      case 4 => Some(PICTURE)
+      case 5 => Some(VIDEO)
+      case 6 => Some(CROSSWORD)
+      case 7 => Some(AUDIO)
+      case _ => None
+    }
   }
 }
 ```
@@ -53,9 +55,9 @@ compiles to
 
 ```
 case class Rights(
-  syndicatable         : Option[Boolean] with 1.type = Some(false),
-  subscriptionDatabases: Option[Boolean] with 2.type = Some(false),
-  developerCommunity   : Option[Boolean] with -1.type = Some(false)
+  syndicatable         : Option[Boolean] = Some(false),
+  subscriptionDatabases: Option[Boolean] = Some(false),
+  developerCommunity   : Option[Boolean] = Some(false)
 ) extends ThriftStruct
 ```
 
@@ -73,6 +75,27 @@ becomes
 ```
   ints: List[Int] = List[Int].empty
 ```
+
+Now the Thrift protocol doesn't care about field names but rather field IDs.
+We need a way to encode them while keeping them separate from the datatype.
+The field ID is just an Int, and it is easy to build an HList of those Ints
+that we can zip together with the HList corresponding to the case class. This
+generic representation will be refered to as PositionedGeneric[Rights] which
+is isomorphic to Generic[Rights], only that each element of the former is a
+FieldType[K, V], where the K is the singleton Int corresponding to the field ID.
+To materialize this HList, we will use an intermediate typeclass Indices, holding
+an HList of singleton Ints corresponding to Rights. That is the only piece of
+metadata the compiler needs to produce. In our example:
+
+object Rights {
+  import humbug.internal.Indices
+
+  implicit val indices: Indices[Rights] = new Indices[Rights] {
+    type Repr = Int :: Int :: Int :: HNil
+
+    val keys = 1 :: 2 :: -1 :: HNil
+  }
+}
 
 ---
 ```
@@ -186,7 +209,7 @@ case class Profile        extends AtomData[profile.ProfileAtom with 12.type] {
   override def profile = Some(this)
 }
 case class Timeline       extends AtomData[timeline.TimelineAtom with 13.type] {
-  override def timeline = Some(this) 
+  override def timeline = Some(this)
 }
 ```
 
