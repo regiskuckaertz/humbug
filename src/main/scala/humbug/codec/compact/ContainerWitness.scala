@@ -1,5 +1,6 @@
 package humbug
 package codec
+package compact
 
 import shapeless._, shapeless.nat._, shapeless.ops.nat._
 

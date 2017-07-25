@@ -74,6 +74,8 @@ trait ThriftCompactBaseWriter {
 }
 
 trait ThriftCompactContainerWriter {
+  import compact.ContainerWitness
+
   val emptyMap = (0: Byte) #:: Stream.Empty
 
   private def writeListHeader[A, F[_] <: Iterable[_]](l: F[A], et: Int): Stream[Byte] = {
@@ -88,13 +90,13 @@ trait ThriftCompactContainerWriter {
     implicit
     enc: ThriftCompactWriter[A]
   ): Stream[Byte] =
-    l.foldRight(Stream.Empty: Stream[Byte])((e: A, r: Stream[Byte]) => enc.write(e) #::: r)
+    l.foldLeft(Stream.Empty: Stream[Byte])((r: Stream[Byte], e: A) => enc.write(e) #::: r)
 
   private def writeSetElements[A](l: Set[A])(
     implicit
     enc: ThriftCompactWriter[A]
   ): Stream[Byte] =
-    l.foldRight(Stream.Empty: Stream[Byte])((e: A, r: Stream[Byte]) => enc.write(e) #::: r)
+    l.foldLeft(Stream.Empty: Stream[Byte])((r: Stream[Byte], e: A) => enc.write(e) #::: r)
 
   private def writeMapHeader(m: Map[_, _], kt: Int, vt: Int): Stream[Byte] =
     intToVarInt(m.size) :+ ((kt << 4) | vt).toByte
@@ -135,7 +137,7 @@ trait ThriftCompactContainerWriter {
 }
 
 trait ThriftCompactStructWriter {
-  import internal._
+  import internal.PositionedGeneric, compact.StructWitness
 
   private def writeFieldHeader(pid: Int, cid: Int, tid: Int)(
     implicit
