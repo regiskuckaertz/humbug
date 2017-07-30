@@ -4,20 +4,19 @@ package samples
 
 import humbug.codec._
 
-sealed abstract class ContentType(override val value: Int) extends ThriftEnum(value)
+sealed abstract class ContentType extends ThriftEnum
+case object ARTICLE     extends ContentType
+case object LIVEBLOG    extends ContentType
+case object GALLERY     extends ContentType
+case object INTERACTIVE extends ContentType
+case object PICTURE     extends ContentType
+case object VIDEO       extends ContentType
+case object CROSSWORD   extends ContentType
+case object AUDIO       extends ContentType
 
 object ContentType {
-  case object ARTICLE     extends ContentType(0)
-  case object LIVEBLOG    extends ContentType(1)
-  case object GALLERY     extends ContentType(2)
-  case object INTERACTIVE extends ContentType(3)
-  case object PICTURE     extends ContentType(4)
-  case object VIDEO       extends ContentType(5)
-  case object CROSSWORD   extends ContentType(6)
-  case object AUDIO       extends ContentType(7)
-
-  implicit val reader = new ThriftEnumReader[ContentType] {
-    def from(x: Int): Option[ContentType] = x match {
+  implicit codec = new ThriftEnumGeneric[ContentType] {
+    def from: Int => Option[ContentType] = {
       case 0 => Some(ARTICLE)
       case 1 => Some(LIVEBLOG)
       case 2 => Some(GALLERY)
@@ -27,6 +26,17 @@ object ContentType {
       case 6 => Some(CROSSWORD)
       case 7 => Some(AUDIO)
       case _ => None
+    }
+
+    def to: ContentType => Int = {
+      case ARTICLE     => 0
+      case LIVEBLOG    => 1
+      case GALLERY     => 2
+      case INTERACTIVE => 3
+      case PICTURE     => 4
+      case VIDEO       => 5
+      case CROSSWORD   => 6
+      case AUDIO       => 7
     }
   }
 }

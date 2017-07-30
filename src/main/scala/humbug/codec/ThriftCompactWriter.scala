@@ -37,8 +37,10 @@ trait ThriftCompactBaseWriter {
 
   // Enums: The generated code writes Enums by taking the ordinal
   // value and then encoding that as an int32.
-  implicit def enumWriter[A <: ThriftEnum] = new ThriftCompactWriter[A] {
-    def write(e: A) = i32Writer.write(e.value)
+  implicit def enumWriter[A <: ThriftEnum](
+    implicit codec: ThriftEnumGeneric[A]
+  ) = new ThriftCompactWriter[A] {
+    def write(e: A) = i32Writer.write(codec.to(e))
   }
 
   // Binary is sent as follows: byte length ++ bytes, where

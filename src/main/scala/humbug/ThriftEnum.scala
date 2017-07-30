@@ -1,3 +1,3 @@
 package humbug
 
-abstract class ThriftEnum(val value: Int)
+abstract class ThriftEnum

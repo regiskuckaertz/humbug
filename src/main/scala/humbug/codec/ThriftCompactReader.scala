@@ -42,9 +42,11 @@ trait ThriftCompactBaseReader {
     }
   }
 
-  implicit def enumReader[A <: ThriftEnum : ThriftEnumReader] = new ThriftCompactReader[A] {
+  implicit def enumReader[A <: ThriftEnum](
+    implicit codec: ThriftEnumGeneric[A]
+  ) = new ThriftCompactReader[A] {
     def read(bs: Stream[Byte]): (Option[A], Stream[Byte]) = i32Reader.read(bs) match {
-      case (Some(i), s) => (implicitly[ThriftEnumReader[A]].from(i), s)
+      case (Some(i), s) => (codec.from(i), s)
     }
   }
 
