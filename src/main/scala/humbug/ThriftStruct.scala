@@ -1,3 +1,3 @@
 package humbug
 
-trait ThriftStruct
+abstract class ThriftStruct
