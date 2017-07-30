@@ -12,6 +12,7 @@ object ThriftBinaryWriter
   extends ThriftBinaryBaseWriter
   with ThriftBinaryContainerWriter
   with ThriftBinaryStructWriter
+  with ThriftBinaryMessageWriter
 
 trait ThriftBinaryBaseWriter {
   implicit val i8Writer = new ThriftBinaryWriter[Byte] {
@@ -170,5 +171,39 @@ trait ThriftBinaryStructWriter {
     wri: Lazy[ThriftBinaryWriter[H]]
   ) = new ThriftBinaryWriter[T] {
     def write(s: T) = wri.value.write(gen.to(s))
+  }
+}
+
+trait ThriftBinaryMessageWriter {
+  private val version: Short = 0x01.toShort
+
+  private def writeMessageHeader(
+    mid: Int,
+    mtype: Int,
+    mname: String
+  )(
+    implicit
+    i32: ThriftCompactWriter[Int],
+    str: ThriftCompactWriter[String]
+  ) = {
+    val firstByte: Byte = (0x80 | (version >>> 8)).toByte
+    val secondByte: Byte = (version & 0xFF).toByte
+
+    firstByte #:: secondByte #:: 0x00.toByte #:: mtype.toByte #:: str.write(mname) #::: i32.write(mid)
+  }
+
+  implicit def messageWriter[M[_] <: ThriftMessage[A], A](
+    implicit
+    A: ThriftCompactWriter[A]
+  ) = new ThriftCompactWriter[M[A]] {
+    def write(m: M[A]) = {
+      val mt = m match {
+        case m: ThriftCall[_] => 1
+        case m: ThriftReply[_] => 2
+        case m: ThriftException[_] => 3
+        case m: ThriftOneWay[_] => 4
+      }
+      writeMessageHeader(m.id, mt, m.name) #::: A.write(m.value)
+    }
   }
 }

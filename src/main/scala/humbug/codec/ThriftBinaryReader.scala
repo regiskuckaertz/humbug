@@ -12,6 +12,7 @@ object ThriftBinaryReader
   extends ThriftBinaryBaseReader
   with ThriftBinaryContainerReader
   with ThriftBinaryStructReader
+  with ThriftBinaryMessageReader
 
 trait ThriftBinaryBaseReader {
   // i8 integers
@@ -233,6 +234,36 @@ trait ThriftBinaryStructReader {
   ) = new ThriftBinaryReader[T] {
     def read(bs: Stream[Byte]): (Option[T], Stream[Byte]) = reader.value.read(bs, 0) match {
       case (Some(x), rs) => (Some(gen.from(x)), rs)
+    }
+  }
+}
+
+trait ThriftBinaryMessageReader {
+  private val version: Short = 0x01.toShort
+
+  private def readMessageHeader(bs: Stream[Byte])(
+    implicit
+    i32: ThriftCompactReader[Int],
+    str: ThriftCompactReader[String]
+  ): (Option[(Int, Int, String)], Stream[Byte]) = bs match {
+    case _ #:: _ #:: _ #:: mtype #:: bs => {
+      str.read(bs) match {
+        case (Some(mname), bs) => i32.read(bs) match {
+          case (Some(mid), bs) => (Some((mid, mtype, mname)), bs)
+        }
+      }
+    }
+  }
+
+  implicit def messageReader[M[_] <: ThriftMessage[A], A](
+    implicit
+    A: ThriftCompactReader[A]
+  ) = new ThriftCompactReader[M[A]] {
+    def read(bs: Stream[Byte]) = readMessageHeader(bs) match {
+      case (Some((mid, mtype, mname)), bs) => A.read(bs) match {
+        // TODO: Fix that sh****
+        case (Some(a), bs) => (Some(ThriftMessage(mtype, mid, mname, a).asInstanceOf[M[A]]), bs)
+      }
     }
   }
 }

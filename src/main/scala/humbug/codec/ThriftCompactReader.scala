@@ -12,6 +12,7 @@ object ThriftCompactReader
   extends ThriftCompactBaseReader
   with ThriftCompactContainerReader
   with ThriftCompactStructReader
+  with ThriftCompactMessageReader
 
 trait ThriftCompactBaseReader {
   // i8 integers
