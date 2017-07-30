@@ -1,10 +1,6 @@
 package humbug
 package internal
 
-import scala.language.experimental.macros
-
-import scala.reflect.macros.whitebox
-
 import shapeless._, shapeless.ops.hlist
 
 trait PositionedGeneric[T] {
