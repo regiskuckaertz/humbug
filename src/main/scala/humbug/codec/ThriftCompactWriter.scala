@@ -11,6 +11,7 @@ object ThriftCompactWriter
   extends ThriftCompactBaseWriter
   with ThriftCompactContainerWriter
   with ThriftCompactStructWriter
+  with ThriftCompactMessageWriter
 
 trait ThriftCompactBaseWriter {
   // i8 integers are treated as binary strings of length 1
@@ -177,5 +178,39 @@ trait ThriftCompactStructWriter {
     wri: Lazy[DeltaWriter[H]]
   ) = new ThriftCompactWriter[T] {
     def write(s: T) = wri.value.write(gen.to(s), 0)
+  }
+}
+
+trait ThriftCompactMessageWriter {
+  private val protocolId: Byte = 0x82.toByte
+  private val version: Byte = 0x01.toByte
+
+  private def writeMessageHeader(
+    mid: Int,
+    mtype: Int,
+    mname: String
+  )(
+    implicit
+    i32: ThriftCompactWriter[Int],
+    str: ThriftCompactWriter[String]
+  ) = {
+    val typeAndVersion: Byte = ((mtype << 5) & version).toByte
+
+    protocolId #:: typeAndVersion #:: i32.write(mid) #::: str.write(mname)
+  }
+
+  implicit def messageWriter[M[_] <: ThriftMessage[A], A](
+    implicit
+    A: ThriftCompactWriter[A]
+  ) = new ThriftCompactWriter[M[A]] {
+    def write(m: M[A]) = {
+      val mt = m match {
+        case m: ThriftCall[_] => 1
+        case m: ThriftReply[_] => 2
+        case m: ThriftException[_] => 3
+        case m: ThriftOneWay[_] => 4
+      }
+      writeMessageHeader(m.id, mt, m.name) #::: A.write(m.value)
+    }
   }
 }
