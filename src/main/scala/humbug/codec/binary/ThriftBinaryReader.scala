@@ -1,5 +1,6 @@
 package humbug
 package codec
+package binary
 
 import shapeless._, shapeless.labelled._
 
@@ -83,8 +84,6 @@ trait ThriftBinaryBaseReader {
 }
 
 trait ThriftBinaryContainerReader {
-  import binary.BinaryWitness
-
   private def readListHeader[A, F[_] <: Iterable[_]](
     bs: Stream[Byte],
     et: Int
@@ -185,7 +184,7 @@ trait ThriftBinaryContainerReader {
 }
 
 trait ThriftBinaryStructReader {
-  import internal.PositionedGeneric, binary.BinaryWitness
+  import internal.PositionedGeneric
 
   private def readFieldHeader(bs: Stream[Byte], pid: Int)(
     implicit

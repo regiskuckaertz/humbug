@@ -1,6 +1,6 @@
 package humbug
 package codec
 
-trait ThriftReader[T] {
-  def read: Stream[Byte] => Option[(T, Stream[Byte])]
+trait ThriftReader[A] {
+  def read: Stream[Byte] => Option[(A, Stream[Byte])]
 }

@@ -1,5 +1,6 @@
 package humbug
 package codec
+package compact
 
 import shapeless._, shapeless.labelled._, shapeless.syntax.singleton._
 
@@ -14,24 +15,22 @@ object ThriftCompactWriter
 trait ThriftCompactBaseWriter {
   // i8 integers are treated as binary strings of length 1
   implicit val i8Writer = new ThriftCompactWriter[Byte] {
-    def write(b: Byte) = (1: Byte) #:: b #:: Stream.Empty
+    def write = (1: Byte) #:: _ #:: Stream.Empty
   }
 
   // i16 integers are coerced into i32s
   implicit val i16Writer = new ThriftCompactWriter[Short] {
-    def write(s: Short) = i32Writer.write(s)
+    def write = s => i32Writer.write(s.toInt)
   }
 
   // i32 integers are zigzag'd and then converted to var ints
   implicit val i32Writer = new ThriftCompactWriter[Int] {
-    val serialize: Int => Stream[Byte] = intToVarInt _ compose intToZigZag _
-    def write(i: Int) = serialize(i)
+    def write = intToVarInt _ compose intToZigZag _
   }
 
   // i64 integers are zigzag's and then converted to var ints
   implicit val i64Writer = new ThriftCompactWriter[Long] {
-    val serialize: Long => Stream[Byte] = longToVarInt _ compose longToZigZag _
-    def write(l: Long) = serialize(l)
+    def write = longToVarInt _ compose longToZigZag _
   }
 
   // Enums: The generated code writes Enums by taking the ordinal
@@ -39,7 +38,7 @@ trait ThriftCompactBaseWriter {
   implicit def enumWriter[A <: ThriftEnum](
     implicit codec: ThriftEnumGeneric[A]
   ) = new ThriftCompactWriter[A] {
-    def write(e: A) = i32Writer.write(codec.to(e))
+    def write = codec.to andThen i32Writer.write
   }
 
   // Binary is sent as follows: byte length ++ bytes, where
@@ -47,27 +46,25 @@ trait ThriftCompactBaseWriter {
   //   var int encoding (must be >= 0).
   // - bytes are the bytes of the byte array.
   implicit val binaryWriter = new ThriftCompactWriter[Vector[Byte]] {
-    def write(bs: Vector[Byte]) = intToVarInt(bs.length) #::: bs.toStream
+    def write = bs => intToVarInt(bs.length) #::: bs.toStream
   }
 
   // Values of type double are first converted to an int64 according to the
   // IEEE 754 floating-point "double format" bit layout.
   implicit val doubleWriter = new ThriftCompactWriter[Double] {
-    def write(d: Double) =
-      i64Writer.write(java.lang.Double.doubleToLongBits(d))
+    def write = java.lang.Double.doubleToLongBits _ andThen i64Writer.write
   }
 
   // Strings are first writed to UTF-8, and then sent as binary.
   implicit val stringWriter = new ThriftCompactWriter[String] {
-    def write(s: String) =
-      binaryWriter.write(s.getBytes("UTF-8").toVector)
+    def write = s => binaryWriter.write(s.getBytes("UTF-8").toVector)
   }
 
   // Element values of type bool are sent as an int8; true as 1 and false as 0.
-  val f: Stream[Byte] = (1: Byte) #:: (0: Byte) #:: Stream.Empty
-  val t: Stream[Byte] = (1: Byte) #:: (1: Byte) #:: Stream.Empty
   implicit val booleanWriter = new ThriftCompactWriter[Boolean] {
-    def write(b: Boolean) = b match {
+    private val f: Stream[Byte] = (1: Byte) #:: (0: Byte) #:: Stream.Empty
+    private val t: Stream[Byte] = (1: Byte) #:: (1: Byte) #:: Stream.Empty
+    def write = {
       case false => f
       case true => t
     }
@@ -75,10 +72,6 @@ trait ThriftCompactBaseWriter {
 }
 
 trait ThriftCompactContainerWriter {
-  import compact.CompactWitness
-
-  val emptyMap = (0: Byte) #:: Stream.Empty
-
   private def writeListHeader[A, F[_] <: Iterable[_]](l: F[A], et: Int): Stream[Byte] = {
     val ls: Int = l.size
     if (ls < 15)
@@ -115,16 +108,14 @@ trait ThriftCompactContainerWriter {
     implicit
     w: CompactWitness[A]
   ) = new ThriftCompactWriter[List[A]] {
-    def write(l: List[A]) =
-      writeListHeader(l, w.value) #::: writeListElements(l)
+    def write = l => writeListHeader(l, w.value) #::: writeListElements(l)
   }
 
   implicit def setWriter[A : ThriftCompactWriter](
     implicit
     w: CompactWitness[A]
   ) = new ThriftCompactWriter[Set[A]] {
-    def write(s: Set[A]) =
-      writeListHeader(s, w.value) #::: writeSetElements(s)
+    def write = s => writeListHeader(s, w.value) #::: writeSetElements(s)
   }
 
   implicit def mapWriter[K : ThriftCompactWriter, V : ThriftCompactWriter](
@@ -132,13 +123,17 @@ trait ThriftCompactContainerWriter {
     kw: CompactWitness[K],
     vw: CompactWitness[V]
   ) = new ThriftCompactWriter[Map[K, V]] {
-    def write(m: Map[K, V]) =
-      if (m.isEmpty) emptyMap else writeMapHeader(m, kw.value, vw.value) #::: writeMapPairs(m)
+    private val emptyMap = (0: Byte) #:: Stream.Empty
+
+    def write = {
+      case m if m.isEmpty => emptyMap
+      case m => writeMapHeader(m, kw.value, vw.value) #::: writeMapPairs(m)
+    }
   }
 }
 
 trait ThriftCompactStructWriter {
-  import internal.PositionedGeneric, compact.StructWitness
+  import internal.PositionedGeneric
 
   private def writeFieldHeader(pid: Int, cid: Int, tid: Int)(
     implicit
@@ -175,7 +170,7 @@ trait ThriftCompactStructWriter {
     gen: PositionedGeneric.Aux[T, H],
     wri: Lazy[DeltaWriter[H]]
   ) = new ThriftCompactWriter[T] {
-    def write(s: T) = wri.value.write(gen.to(s), 0)
+    def write = s => wri.value.write(gen.to(s), 0)
   }
 }
 
@@ -201,8 +196,7 @@ trait ThriftCompactMessageWriter {
     implicit
     A: ThriftCompactWriter[A]
   ) = new ThriftCompactWriter[M[A]] {
-    def write(m: M[A]) = {
+    def write = m =>
       writeMessageHeader(m.id, m.`type`, m.name) #::: A.write(m.value)
-    }
   }
 }
