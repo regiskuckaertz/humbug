@@ -3,9 +3,7 @@ package codec
 
 import shapeless._, shapeless.labelled._, shapeless.syntax.singleton._
 
-trait ThriftCompactWriter[T] {
-  def write(t: T): Stream[Byte]
-}
+trait ThriftCompactWriter[T] extends ThriftWriter[T]
 
 object ThriftCompactWriter
   extends ThriftCompactBaseWriter
@@ -77,7 +75,7 @@ trait ThriftCompactBaseWriter {
 }
 
 trait ThriftCompactContainerWriter {
-  import compact.ContainerWitness
+  import compact.CompactWitness
 
   val emptyMap = (0: Byte) #:: Stream.Empty
 
@@ -115,7 +113,7 @@ trait ThriftCompactContainerWriter {
 
   implicit def listWriter[A : ThriftCompactWriter](
     implicit
-    w: ContainerWitness[A]
+    w: CompactWitness[A]
   ) = new ThriftCompactWriter[List[A]] {
     def write(l: List[A]) =
       writeListHeader(l, w.value) #::: writeListElements(l)
@@ -123,7 +121,7 @@ trait ThriftCompactContainerWriter {
 
   implicit def setWriter[A : ThriftCompactWriter](
     implicit
-    w: ContainerWitness[A]
+    w: CompactWitness[A]
   ) = new ThriftCompactWriter[Set[A]] {
     def write(s: Set[A]) =
       writeListHeader(s, w.value) #::: writeSetElements(s)
@@ -131,8 +129,8 @@ trait ThriftCompactContainerWriter {
 
   implicit def mapWriter[K : ThriftCompactWriter, V : ThriftCompactWriter](
     implicit
-    kw: ContainerWitness[K],
-    vw: ContainerWitness[V]
+    kw: CompactWitness[K],
+    vw: CompactWitness[V]
   ) = new ThriftCompactWriter[Map[K, V]] {
     def write(m: Map[K, V]) =
       if (m.isEmpty) emptyMap else writeMapHeader(m, kw.value, vw.value) #::: writeMapPairs(m)
@@ -187,14 +185,14 @@ trait ThriftCompactMessageWriter {
 
   private def writeMessageHeader(
     mid: Int,
-    mtype: Int,
+    mtype: ThriftMessageType,
     mname: String
   )(
     implicit
     i32: ThriftCompactWriter[Int],
     str: ThriftCompactWriter[String]
   ) = {
-    val typeAndVersion: Byte = ((mtype << 5) & version).toByte
+    val typeAndVersion: Byte = ((mtype.value << 5) & version).toByte
 
     protocolId #:: typeAndVersion #:: i32.write(mid) #::: str.write(mname)
   }
@@ -204,13 +202,7 @@ trait ThriftCompactMessageWriter {
     A: ThriftCompactWriter[A]
   ) = new ThriftCompactWriter[M[A]] {
     def write(m: M[A]) = {
-      val mt = m match {
-        case m: ThriftCall[_] => 1
-        case m: ThriftReply[_] => 2
-        case m: ThriftException[_] => 3
-        case m: ThriftOneWay[_] => 4
-      }
-      writeMessageHeader(m.id, mt, m.name) #::: A.write(m.value)
+      writeMessageHeader(m.id, m.`type`, m.name) #::: A.write(m.value)
     }
   }
 }

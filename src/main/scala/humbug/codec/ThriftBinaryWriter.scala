@@ -4,9 +4,7 @@ package codec
 import binary.BinaryWitness
 import shapeless._, shapeless.labelled._, shapeless.syntax.singleton._
 
-trait ThriftBinaryWriter[T] {
-  def write(t: T): Stream[Byte]
-}
+trait ThriftBinaryWriter[T] extends ThriftWriter[T]
 
 object ThriftBinaryWriter
   extends ThriftBinaryBaseWriter
@@ -178,9 +176,9 @@ trait ThriftBinaryMessageWriter {
   private val version: Short = 0x01.toShort
 
   private def writeMessageHeader(
-    mid: Int,
-    mtype: Int,
-    mname: String
+    id: Int,
+    `type`: ThriftMessageType,
+    name: String
   )(
     implicit
     i32: ThriftCompactWriter[Int],
@@ -189,21 +187,15 @@ trait ThriftBinaryMessageWriter {
     val firstByte: Byte = (0x80 | (version >>> 8)).toByte
     val secondByte: Byte = (version & 0xFF).toByte
 
-    firstByte #:: secondByte #:: 0x00.toByte #:: mtype.toByte #:: str.write(mname) #::: i32.write(mid)
+    firstByte #:: secondByte #:: 0x00.toByte #:: `type`.value.toByte #:: str.write(name) #::: i32.write(id)
   }
 
-  implicit def messageWriter[M[_] <: ThriftMessage[A], A](
+  implicit def messageWriter[A](
     implicit
     A: ThriftCompactWriter[A]
-  ) = new ThriftCompactWriter[M[A]] {
-    def write(m: M[A]) = {
-      val mt = m match {
-        case m: ThriftCall[_] => 1
-        case m: ThriftReply[_] => 2
-        case m: ThriftException[_] => 3
-        case m: ThriftOneWay[_] => 4
-      }
-      writeMessageHeader(m.id, mt, m.name) #::: A.write(m.value)
+  ) = new ThriftCompactWriter[ThriftMessage[A]] {
+    def write(m: ThriftMessage[A]) = {
+      writeMessageHeader(m.id, m.`type`, m.name) #::: A.write(m.value)
     }
   }
 }

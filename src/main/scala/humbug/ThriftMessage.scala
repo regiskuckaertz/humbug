@@ -1,26 +1,36 @@
 package humbug
 
-abstract class ThriftMessageType
-case object ThriftCall extends ThriftMessageType
-case object ThriftReply extends ThriftMessageType
-case object ThriftException extends ThriftMessageType
-case object ThriftOneWay extends ThriftMessageType
+abstract class ThriftMessageType(val value: Byte)
+final case object ThriftCall extends ThriftMessageType(1)
+final case object ThriftReply extends ThriftMessageType(2)
+final case object ThriftException extends ThriftMessageType(3)
+final case object ThriftOneWay extends ThriftMessageType(4)
+
+object ThriftMessageType {
+  def apply(x: Int): Option[ThriftMessageType] = x match {
+    case 1 => Some(ThriftCall)
+    case 2 => Some(ThriftReply)
+    case 3 => Some(ThriftException)
+    case 4 => Some(ThriftOneWay)
+    case _ => None
+  }
+}
 
 class ThriftMessage[A](
   val id: Int,
-  val mtype: ThriftMessageType,
+  val `type`: ThriftMessageType,
   val name: String,
   val value: A
 )
 
 object ThriftMessage {
   def apply[A](
-    mtype: ThriftMessageType,
-    mid: Int,
-    mname: String,
-    mvalue: A
+    id: Int,
+    `type`: ThriftMessageType,
+    name: String,
+    value: A
   ): ThriftMessage[A] = new ThriftMessage(
-    mid, mtype, mname, mvalue
+    id, `type`, name, value
   )
 }
 
