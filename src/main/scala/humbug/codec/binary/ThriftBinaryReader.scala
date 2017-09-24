@@ -52,7 +52,7 @@ trait ThriftBinaryBaseReader {
     implicit codec: ThriftEnumGeneric[A]
   ) = new ThriftBinaryReader[A] {
     def read = i32Reader.read(_) flatMap {
-      case (i, bs) => codec.from(i) map { (_, bs) }
+      case (i, bs) => Some((codec.from(i), bs))
     }
   }
 

@@ -47,7 +47,7 @@ trait ThriftCompactBaseReader {
   ) = new ThriftCompactReader[A] {
     def read = bs => for {
       (i, s) <- i32Reader.read(bs)
-      enum <- codec.from(i)
+      enum = codec.from(i)
     } yield (enum, s)
   }
 
