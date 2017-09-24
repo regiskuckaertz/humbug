@@ -16,64 +16,65 @@ trait ThriftCompactBaseReader {
   // i8 integers
   implicit val i8Writer = new ThriftCompactReader[Byte] {
     def read = {
-      case 1 #:: b #:: bs => Some((b, bs))
-      case _ => None
+      case 1 #:: b #:: bs ⇒ Some((b, bs))
+      case _              ⇒ None
     }
   }
 
   // i16 integers
   implicit val i16Reader = new ThriftCompactReader[Short] {
     def read = i32Reader.read(_) map {
-      case (i, s) => (i.toShort, s)
+      case (i, s) ⇒ (i.toShort, s)
     }
   }
 
   // i32 integers
   implicit val i32Reader = new ThriftCompactReader[Int] {
     def read = varIntToInt(_) match {
-      case (i, s) => Some((zigzagToInt(i), s))
+      case (i, s) ⇒ Some((zigzagToInt(i), s))
     }
   }
 
   // i64 integers
   implicit val i64Reader = new ThriftCompactReader[Long] {
     def read = varIntToLong(_) match {
-      case (l, s) => Some((zigzagToLong(l), s))
+      case (l, s) ⇒ Some((zigzagToLong(l), s))
     }
   }
 
   implicit def enumReader[A <: ThriftEnum](
-    implicit codec: ThriftEnumGeneric[A]
+    implicit
+    codec: ThriftEnumGeneric[A]
   ) = new ThriftCompactReader[A] {
-    def read = bs => for {
-      (i, s) <- i32Reader.read(bs)
+    def read = bs ⇒ for {
+      (i, s) ← i32Reader.read(bs)
       enum = codec.from(i)
     } yield (enum, s)
   }
 
   implicit val doubleReader = new ThriftCompactReader[Double] {
     def read = i64Reader.read(_) map {
-      case (l, s) => (java.lang.Double.longBitsToDouble(l), s)
+      case (l, s) ⇒ (java.lang.Double.longBitsToDouble(l), s)
     }
   }
 
   implicit val binaryReader = new ThriftCompactReader[Vector[Byte]] {
     def read = varIntToInt(_) match {
-      case (i, s) => Some((s.take(i).toVector, s.drop(i)))
+      case (i, s) ⇒ Some((s.take(i).toVector, s.drop(i)))
     }
   }
 
   implicit val stringReader = new ThriftCompactReader[String] {
     def read = binaryReader.read(_) map {
-      case (cs, s) => (new String(cs.toArray, "UTF-8"), s)
+      case (cs, s) ⇒ (new String(cs.toArray, "UTF-8"), s)
     }
   }
 
   implicit val booleanReader = new ThriftCompactReader[Boolean] {
     def read = _ match {
-      case 1 #:: 0 #:: bs => Some((false, bs))
-      case 1 #:: 1 #:: bs => Some((true, bs))
-      case _              => None
+      case 1 #:: 0 #:: bs ⇒ Some((false, bs))
+      case 1 #:: 1 #:: bs ⇒ Some((true, bs))
+      case _              ⇒ None
     }
   }
 }
@@ -86,13 +87,13 @@ trait ThriftCompactContainerReader {
     et: Int
   ): Option[(Int, Stream[Byte])] = {
     val h: Byte = bs.head
-    if((h & 0x0F) != et)
+    if ((h & 0x0F) != et)
       None
-    else if((h & 0xF0) != 0xF0)
+    else if ((h & 0xF0) != 0xF0)
       Some((h >>> 4, bs.tail))
     else
       varIntToInt(bs.tail) match {
-        case (l, bs) => Some((l, bs))
+        case (l, bs) ⇒ Some((l, bs))
       }
   }
 
@@ -100,11 +101,11 @@ trait ThriftCompactContainerReader {
     implicit
     enc: ThriftCompactReader[A]) = {
     def readListElements_rec(bs: Stream[Byte], l: Int, acc: List[A]): Option[(List[A], Stream[Byte])] = {
-      if(l == 0) {
+      if (l == 0) {
         Some((acc, bs))
       } else {
         enc.read(bs) flatMap {
-          case (x, bs) => readListElements_rec(bs, l - 1, x :: acc)
+          case (x, bs) ⇒ readListElements_rec(bs, l - 1, x :: acc)
         }
       }
     }
@@ -117,11 +118,11 @@ trait ThriftCompactContainerReader {
     enc: ThriftCompactReader[A]
   ) = {
     def readSetElements_rec(bs: Stream[Byte], l: Int, acc: Set[A]): Option[(Set[A], Stream[Byte])] = {
-      if(l == 0)
+      if (l == 0)
         Some((acc, bs))
       else
         enc.read(bs) flatMap {
-          case (x, bs) => readSetElements_rec(bs, l - 1, acc + x)
+          case (x, bs) ⇒ readSetElements_rec(bs, l - 1, acc + x)
         }
     }
 
@@ -134,8 +135,8 @@ trait ThriftCompactContainerReader {
     vt: Int
   ): Option[(Int, Stream[Byte])] =
     varIntToInt(bs) match {
-      case (i, h #:: bs) if h == ((kt << 4) | vt).toByte => Some((i, bs))
-      case _ => None
+      case (i, h #:: bs) if h == ((kt << 4) | vt).toByte ⇒ Some((i, bs))
+      case _ ⇒ None
     }
 
   private def readMapPairs[K, V](n: Int, bs: Stream[Byte])(
@@ -144,49 +145,49 @@ trait ThriftCompactContainerReader {
     VR: ThriftCompactReader[V]
   ) = {
     def loop(bs: Stream[Byte], n: Int, acc: Map[K, V]): Option[(Map[K, V], Stream[Byte])] = {
-      if(n == 0)
+      if (n == 0)
         Some((acc, bs))
       else
         for {
-          (k, bs2) <- KR.read(bs)
-          (v, bs3) <- VR.read(bs2)
-          res <- loop(bs, n - 1, acc + (k -> v))
+          (k, bs2) ← KR.read(bs)
+          (v, bs3) ← VR.read(bs2)
+          res ← loop(bs, n - 1, acc + (k -> v))
         } yield res
     }
     loop(bs, n, Map.empty)
   }
 
-  implicit def listReader[A : ThriftCompactReader](
+  implicit def listReader[A: ThriftCompactReader](
     implicit
     w: CompactWitness[A]
   ) = new ThriftCompactReader[List[A]] {
-    def read = bs => for {
-      (l, bs) <- readListHeader(bs, w.value)
-      res <- readListElements(bs, l)
+    def read = bs ⇒ for {
+      (l, bs) ← readListHeader(bs, w.value)
+      res ← readListElements(bs, l)
     } yield res
   }
 
-  implicit def setReader[A : ThriftCompactReader](
+  implicit def setReader[A: ThriftCompactReader](
     implicit
     w: CompactWitness[A]
   ) = new ThriftCompactReader[Set[A]] {
-    def read = bs => for {
-      (l, bs) <- readListHeader(bs, w.value)
-      res <- readSetElements[A](bs, l)
+    def read = bs ⇒ for {
+      (l, bs) ← readListHeader(bs, w.value)
+      res ← readSetElements[A](bs, l)
     } yield res
   }
 
-  implicit def mapReader[K : ThriftCompactReader, V : ThriftCompactReader](
+  implicit def mapReader[K: ThriftCompactReader, V: ThriftCompactReader](
     implicit
     wk: CompactWitness[K],
     wv: CompactWitness[V]
   ) =
     new ThriftCompactReader[Map[K, V]] {
       def read = {
-        case 0 #:: bs => Some((Map.empty, bs))
-        case bs => for {
-          (n, bs2) <- readMapHeader(bs, wk.value, wv.value)
-          res <- readMapPairs[K, V](n, bs2)
+        case 0 #:: bs ⇒ Some((Map.empty, bs))
+        case bs ⇒ for {
+          (n, bs2) ← readMapHeader(bs, wk.value, wv.value)
+          res ← readMapPairs[K, V](n, bs2)
         } yield res
       }
     }
@@ -200,9 +201,9 @@ trait ThriftCompactStructReader {
     intr: ThriftCompactReader[Int]
   ): Option[(Int, Int, Stream[Byte])] = {
     val h: Byte = bs.head
-    if((h & 0x0F).toByte == 0)
+    if ((h & 0x0F).toByte == 0)
       intr.read(bs.tail) map {
-        case (cid, bs) => (h, cid, bs)
+        case (cid, bs) ⇒ (h, cid, bs)
       }
     else
       Some((h & 0x0F, (h >>> 4) + pid, bs.tail))
@@ -214,7 +215,7 @@ trait ThriftCompactStructReader {
 
   private implicit val hnilReader = new DeltaReader[HNil] {
     def read(bs: Stream[Byte], pid: Int) = bs match {
-      case 0 #:: bs => Some((HNil, bs))
+      case 0 #:: bs ⇒ Some((HNil, bs))
     }
   }
 
@@ -226,20 +227,20 @@ trait ThriftCompactStructReader {
     te: DeltaReader[T]
   ) = new DeltaReader[FieldType[K, H] :: T] {
     def read(bs: Stream[Byte], pid: Int) = for {
-      (fid, cid, bs2) <- readFieldHeader(bs, pid)
+      (fid, cid, bs2) ← readFieldHeader(bs, pid)
       if fid == hw.value && cid == kw.value
-      (v, bs3) <- he.value.read(bs)
-      (t, bs4) <- te.read(bs, cid)
+      (v, bs3) ← he.value.read(bs)
+      (t, bs4) ← te.read(bs, cid)
     } yield (field[kw.T](v) :: t, bs)
   }
 
   implicit def structReader[T <: ThriftStruct, H <: HList](
     implicit
-    gen: PositionedGeneric.Aux[T, H],
+    gen:    PositionedGeneric.Aux[T, H],
     reader: Lazy[DeltaReader[H]]
   ) = new ThriftCompactReader[T] {
     def read = reader.value.read(_, 0) map {
-      case (x, rs) => (gen.from(x), rs)
+      case (x, rs) ⇒ (gen.from(x), rs)
     }
   }
 }
@@ -253,21 +254,21 @@ trait ThriftCompactMessageReader {
     i32: ThriftCompactReader[Int],
     str: ThriftCompactReader[String]
   ): Option[((Int, ThriftMessageType, String), Stream[Byte])] = bs match {
-    case pid #:: h2 #:: bs if pid == protocolId => for {
-      mtype <- ThriftMessageType(h2 >>> 5)
-      (mid, bs2) <- i32.read(bs)
-      (mname, bs4) <- str.read(bs)
+    case pid #:: h2 #:: bs if pid == protocolId ⇒ for {
+      mtype ← ThriftMessageType(h2 >>> 5)
+      (mid, bs2) ← i32.read(bs)
+      (mname, bs4) ← str.read(bs)
     } yield ((mid, mtype, mname), bs)
-    case _ => None
+    case _ ⇒ None
   }
 
   implicit def messageReader[A](
     implicit
     A: ThriftCompactReader[A]
   ) = new ThriftCompactReader[ThriftMessage[A]] {
-    def read = bs => for {
-      ((mid, mtype, mname), bs) <- readMessageHeader(bs)
-      (a, bs) <- A.read(bs)
+    def read = bs ⇒ for {
+      ((mid, mtype, mname), bs) ← readMessageHeader(bs)
+      (a, bs) ← A.read(bs)
     } yield (ThriftMessage(mid, mtype, mname, a), bs)
   }
 }

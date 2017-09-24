@@ -2,7 +2,7 @@ package humbug
 package codec
 
 trait ThriftEnumGeneric[A <: ThriftEnum] {
-  def from: Int => A
+  def from: Int ⇒ A
 
-  def to: A => Int
+  def to: A ⇒ Int
 }

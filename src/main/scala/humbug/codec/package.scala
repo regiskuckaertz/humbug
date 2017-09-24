@@ -5,14 +5,14 @@ import scala.annotation.tailrec
 package object codec {
   def intToZigZag(n: Int): Int = (n << 1) ^ (n >> 31)
 
-  def zigzagToInt(n: Int): Int = (n >>> 1) ^ - (n & 1)
+  def zigzagToInt(n: Int): Int = (n >>> 1) ^ -(n & 1)
 
   def varIntToInt(bs: Stream[Byte]): (Int, Stream[Byte]) = {
     @tailrec def varIntToInt_rec(bs: Stream[(Byte, Int)], acc: Int): (Int, Stream[Byte]) =
       bs match {
-        case Stream.Empty                        => (acc, Stream.Empty)
-        case (b, i) #:: bs if (b & 0x80) != 0x80 => (acc + (b << (7 * i)), bs.unzip._1)
-        case (b, i) #:: bs                       => varIntToInt_rec(bs, acc | ((b & 0x7F) << 7 * i))
+        case Stream.Empty                        ⇒ (acc, Stream.Empty)
+        case (b, i) #:: bs if (b & 0x80) != 0x80 ⇒ (acc + (b << (7 * i)), bs.unzip._1)
+        case (b, i) #:: bs                       ⇒ varIntToInt_rec(bs, acc | ((b & 0x7F) << 7 * i))
       }
     varIntToInt_rec(bs.zipWithIndex, 0)
   }
@@ -28,14 +28,14 @@ package object codec {
 
   def longToZigZag(n: Long): Long = (n << 1) ^ (n >> 63)
 
-  def zigzagToLong(n: Long): Long = (n >>> 1) ^ - (n & 1)
+  def zigzagToLong(n: Long): Long = (n >>> 1) ^ -(n & 1)
 
   def varIntToLong(bs: Stream[Byte]): (Long, Stream[Byte]) = {
     @tailrec def varIntToLong_rec(bs: Stream[(Byte, Int)], acc: Long): (Long, Stream[Byte]) =
       bs match {
-        case Stream.Empty                        => (acc, Stream.Empty)
-        case (b, i) #:: bs if (b & 0x80) != 0x80 => (acc + (b.toLong << (7 * i)), bs.unzip._1)
-        case (b, i) #:: bs                       => varIntToLong_rec(bs, acc | ((b & 0x7F).toLong << 7 * i))
+        case Stream.Empty                        ⇒ (acc, Stream.Empty)
+        case (b, i) #:: bs if (b & 0x80) != 0x80 ⇒ (acc + (b.toLong << (7 * i)), bs.unzip._1)
+        case (b, i) #:: bs                       ⇒ varIntToLong_rec(bs, acc | ((b & 0x7F).toLong << 7 * i))
       }
     varIntToLong_rec(bs.zipWithIndex, 0L)
   }
