@@ -2,6 +2,8 @@ package humbug
 package codec
 package compact
 
+import humbug.meta.ThriftEnumGeneric
+
 import shapeless._, shapeless.labelled._, shapeless.syntax.singleton._
 
 trait ThriftCompactWriter[T] extends ThriftWriter[T]
@@ -134,7 +136,7 @@ trait ThriftCompactContainerWriter {
 }
 
 trait ThriftCompactStructWriter {
-  import internal.PositionedGeneric
+  import meta.PositionedGeneric
 
   private def writeFieldHeader(pid: Int, cid: Int, tid: Int)(
     implicit

@@ -2,6 +2,8 @@ package humbug
 package codec
 package compact
 
+import humbug.meta.ThriftEnumGeneric
+
 import shapeless._, shapeless.labelled._
 
 trait ThriftCompactReader[T] extends ThriftReader[T]
@@ -194,7 +196,7 @@ trait ThriftCompactContainerReader {
 }
 
 trait ThriftCompactStructReader {
-  import internal.PositionedGeneric, compact.StructWitness
+  import meta.PositionedGeneric, compact.StructWitness
 
   private def readFieldHeader(bs: Stream[Byte], pid: Int)(
     implicit

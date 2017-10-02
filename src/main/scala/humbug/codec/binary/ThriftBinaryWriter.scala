@@ -2,6 +2,8 @@ package humbug
 package codec
 package binary
 
+import humbug.meta.ThriftEnumGeneric
+
 import shapeless._, shapeless.labelled._, shapeless.syntax.singleton._
 
 trait ThriftBinaryWriter[T] extends ThriftWriter[T]
@@ -134,7 +136,7 @@ trait ThriftBinaryContainerWriter {
 }
 
 trait ThriftBinaryStructWriter {
-  import internal._
+  import meta._
 
   private def writeFieldHeader(fid: Int, tid: Int)(
     implicit

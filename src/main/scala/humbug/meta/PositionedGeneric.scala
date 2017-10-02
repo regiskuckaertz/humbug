@@ -1,5 +1,5 @@
 package humbug
-package internal
+package meta
 
 import shapeless._, shapeless.ops.hlist
 
@@ -17,11 +17,12 @@ object PositionedGeneric {
   def apply[T](implicit pgen: PositionedGeneric[T]): Aux[T, pgen.Repr] = pgen
 
   /** Handles the Product case (fields in a case class, for example) */
-  implicit def materializeProduct[T, I <: HList, V <: HList, R <: HList](implicit
+  implicit def materializeProduct[T, I <: HList, V <: HList, R <: HList](
+    implicit
     idx: Indices.Aux[T, I],
-                                                                         gen: Generic.Aux[T, V],
-                                                                         zip: hlist.ZipWithKeys.Aux[I, V, R],
-                                                                         ev:  R <:< V
+    gen: Generic.Aux[T, V],
+    zip: hlist.ZipWithKeys.Aux[I, V, R],
+    ev:  R <:< V
   ): Aux[T, R] =
     new PositionedGeneric[T] {
       type Repr = R

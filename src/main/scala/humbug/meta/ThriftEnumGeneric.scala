@@ -1,5 +1,5 @@
 package humbug
-package codec
+package meta
 
 trait ThriftEnumGeneric[A <: ThriftEnum] {
   def from: Int ⇒ A
