@@ -72,19 +72,7 @@ case class Rights(
 ```
 
 the translation is literal for base types, i.e. an optional field of type `A`
-becomes an `Option[A]` and a required field of type `A` becomes an `A`. Container
-types embody the notion of emptiness so there is no need to wrap them in an
-`Option`:
-
-```
-  optional list<i32> ints
-```
-
-becomes
-
-```
-  ints: List[Int] = List[Int].empty
-```
+becomes an `Option[A]` and a required field of type `A` becomes an `A`.
 
 Now the Thrift protocol doesn't care about field names but rather field IDs.
 We need a way to encode them while keeping them separate from the datatype.
@@ -168,59 +156,22 @@ union AtomData {
 }
 ```
 
-becomes
+becomes, as one would expect
 
 ```
-sealed abstract class AtomData[A] extends ThriftStruct {
-  def quiz: Some[A] = None
-  def media: Some[A] = None
-  def explainer: Some[A] = None
-  def cta: Some[A] = None
-  def interactive: Some[A] = None
-  def review: Some[A] = None
-  def recipe: Some[A] = None
-  def storyquestions: Some[A] = None
-  def qanda: Some[A] = None
-  def guide: Some[A] = None
-  def profile: Some[A] = None
-  def timeline: Some[A] = None
-}
-case class Quiz           extends AtomData[quiz.QuizAtom with 1.type] {
-  override def quiz = Some(this)
-}
-case class Media          extends AtomData[media.MediaAtom with -1.type] {
-  override def media = Some(this)
-}
-case class Explainer      extends AtomData[explainer.ExplainerAtom with -2.type] {
-  override def explainer = Some(this)
-}
-case class Cta            extends AtomData[cta.CTAAtom with 5.type] {
-  override def cta = Some(this)
-}
-case class Interactive    extends AtomData[interactive.InteractiveAtom with 6.type] {
-  override def interactive = Some(this)
-}
-case class Review         extends AtomData[review.ReviewAtom with 7.type] {
-  override def review = Some(this)
-}
-case class Recipe         extends AtomData[recipe.RecipeAtom with -3.type] {
-  override def recipe = Some(this)
-}
-case class Storyquestions extends AtomData[storyquestions.StoryQuestionsAtom with 9.type] {
-  override def storyquestions = Some(this)
-}
-case class Qanda          extends AtomData[qanda.QAndAAtom with 10.type] {
-  override def qanda = Some(this)
-}
-case class Guide          extends AtomData[guide.GuideAtom with 11.type] {
-  override def guide = Some(this)
-}
-case class Profile        extends AtomData[profile.ProfileAtom with 12.type] {
-  override def profile = Some(this)
-}
-case class Timeline       extends AtomData[timeline.TimelineAtom with 13.type] {
-  override def timeline = Some(this)
-}
+sealed trait AtomData extends ThriftUnion
+case class Quiz(quiz: QuizAtom) extends AtomData
+case class Media(media: MediaAtom) extends AtomData
+case class Explainer(explainer: ExplainerAtom) extends AtomData
+case class Cta(cta: CTAAtom) extends AtomData
+case class Interactive(interactive: InteractiveAtom) extends AtomData
+case class Review(review: ReviewAtom) extends AtomData
+case class Recipe(recipe: RecipeAtom) extends AtomData
+case class Storyquestions(storyquestions: StoryQuestionsAtom) extends AtomData
+case class Qanda(qanda: QAndAAtom) extends AtomData
+case class Guide(guide: GuideAtom) extends AtomData
+case class Profile(profile: ProfileAtom) extends AtomData
+case class Timeline(timeline: TimelineAtom) extends AtomData
 ```
 
 ---
@@ -234,4 +185,4 @@ becomes
 ```
 case class Datetime(value: String) extends AnyVal
 ```
-types embody the notion of emptiness so there is no need to wrap them in an
+
