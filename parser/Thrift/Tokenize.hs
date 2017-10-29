@@ -3,7 +3,7 @@ module Thrift.Tokenize
 ) where
 
 import Thrift.Types
-import Thrift.Utils
+import Utils.Strings
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Token
 import Text.Parsec.Language(LanguageDef, javaStyle)

@@ -1,4 +1,4 @@
-module Thrift.Utils
+module Utils.Strings
 ( string2int
 ) where
 
