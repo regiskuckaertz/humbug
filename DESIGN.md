@@ -374,3 +374,23 @@ The unification will try to resolve all these constraints. If it succeeds, great
 Oh, by the way: unification. The set of constraints will yield a substitution function where each variable must be replaced by its counterpart in the equation. This function will take an AST and produce a new AST as a result (in the happy path). 
 
 If we do things correctly, we can even be super specific in the import statement, i.e. only include those things that are actually being used in the document.
+
+## Consts
+
+A constant in a Thrift document, such as
+
+```thrift
+package * io.github.regiskuckaertz.humbug.sample
+
+const i32 MAX_CONNECTIONS = 256
+````
+
+is turned into a value in the package object corresponding to that document:
+
+```scala
+package io.github.regiskuckaertz.humbug
+
+package object sample {
+  val MAX_CONNECTIONS: Int = 256
+}
+```
