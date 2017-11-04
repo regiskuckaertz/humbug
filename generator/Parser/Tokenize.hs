@@ -1,9 +1,9 @@
-module Thrift.Tokenize
+module Humbug.Tokenize
 ( tokenize
 ) where
 
-import Thrift.Types
-import Utils.Strings
+import Humbug.Types
+import Humbug.Utils.Strings
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Token
 import Text.Parsec.Language(LanguageDef, javaStyle)
@@ -44,35 +44,24 @@ cppInclude     = do { try (symbol thrift "cpp_include")
                     ; return $ CppInclude filename
                     }
 
-namespace      = phpNamespace <|> xsdNamespace <|> simpleNamespace
-
-phpNamespace   = do { try (symbol thrift "php_namespace")
-                    ; filename <- literal
-                    ; return $ PhpNamespace filename }
-
-xsdNamespace   = do { try (symbol thrift "xsd_namespace")
-                    ; filename <- literal
-                    ; return $ XsdNamespace filename }
-
-simpleNamespace= do { try (symbol thrift "namespace")
-                    ; scope <-  try (symbol thrift "*")
-                            <|> try (symbol thrift "java")
-                            -- the scala namespace is not standard and
-                            -- redundant with the java namespace but some
-                            -- thrift files use it
-                            <|> try (symbol thrift "scala")
-                            <|> try (symbol thrift "rb")
-                            <|> try (symbol thrift "cpp")
-                            <|> try (symbol thrift "cocoa")
-                            <|> try (symbol thrift "csharp")
-                            <|> try (symbol thrift "py")
-                            <|> try (symbol thrift "perl")
-                            <|> try (symbol thrift "smalltalk.category")
-                            <|> try (symbol thrift "smalltalk.prefix")
-                    ; ident <- if scope == "smalltalk.category" then stIdentifier
-                                                                else identifier thrift
+namespace      = do { try (symbol thrift "namespace")
+                    ; scope <- scope thrift
+                    ; ident <- identifier thrift
                     ; return $ Namespace scope ident
                     }
+
+scope          = try (symbol thrift "*") >> return NsStar
+               <|> try (symbol thrift "java") >> return NsJava
+               -- the scala namespace is not standard and
+               -- redundant with the java namespace but some
+               -- thrift files use it
+               <|> try (symbol thrift "scala") >> return NsJava
+               <|> try (symbol thrift "rb") >> return NsRuby
+               <|> try (symbol thrift "cpp") >> return NsCpp
+               <|> try (symbol thrift "cocoa") >> return NsCocoa
+               <|> try (symbol thrift "csharp") >> return NsCsharp
+               <|> try (symbol thrift "py") >> return NsPython
+               <|> try (symbol thrift "perl") >> return NsPerl
 
 --- Definitions
 
@@ -94,12 +83,10 @@ constant       = do { try (symbol thrift "const")
                     }
 
 typedef        = do { try (symbol thrift "typedef")
-                    ; dt <- definitionType
+                    ; dt <- fieldType
                     ; ident <- identifier thrift
                     ; return $ Typedef dt ident
                     }
-
-definitionType = (Base <$> baseTypeIdentifier) <|> (Container <$> (mapType <|> setType <|> listType))
 
 enum           = do { try (symbol thrift "enum")
                     ; ident <- identifier thrift
@@ -141,7 +128,7 @@ service        = do { try (symbol thrift "service")
 
 fields         = (field `sepEndBy` listSeparator)
 
-field          = Field <$> optionMaybe (FieldID . string2int <$> many1 digit <* symbol thrift ":")
+field          = Field <$> optionMaybe (string2int <$> many1 digit <* symbol thrift ":")
                        <*> optionMaybe (   do try (symbol thrift "required"); return Required
                                        <|> do try (symbol thrift "optional"); return Optional)
                        <*> fieldType
@@ -156,29 +143,28 @@ function       = Function <$> option False (do try (symbol thrift "oneway"); ret
                           <*> parens thrift fields
                           <*> optionMaybe (try (symbol thrift "throws") *> parens thrift fields)
 
-functionType   = do { try (symbol thrift "void"); return VoidType }
-             <|> ReturnType <$> fieldType
+functionType   = do { try (symbol thrift "void"); return LtVoid }
+             <|> LtReturn <$> fieldType
 
 --- Types
 
 fieldType      = baseField <|> containerField <|> namedField
 
-namedField     = NamedField <$> identifier thrift
+namedField     = FtNamed <$> identifier thrift
 
-baseField      = BaseField <$> baseTypeIdentifier
+baseField      = FtBase <$> baseTypeIdentifier
 
-baseTypeIdentifier = try (symbol thrift "bool")
-                    <|> try (symbol thrift "byte")
-                    <|> try (symbol thrift "i8")
-                    <|> try (symbol thrift "i16")
-                    <|> try (symbol thrift "i32")
-                    <|> try (symbol thrift "i64")
-                    <|> try (symbol thrift "double")
-                    <|> try (symbol thrift "string")
-                    <|> try (symbol thrift "binary")
-                    <|> try (symbol thrift "slist")
+baseTypeIdentifier = try (symbol thrift "bool") >> return BtBool
+                    <|> try (symbol thrift "byte") >> return BtByte
+                    <|> try (symbol thrift "i8") >> return BtInt8
+                    <|> try (symbol thrift "i16") >> return BtInt16
+                    <|> try (symbol thrift "i32") >> return BtInt32
+                    <|> try (symbol thrift "i64") >> return BtInt64
+                    <|> try (symbol thrift "double") >> return BtDouble
+                    <|> try (symbol thrift "string") >> return BtString
+                    <|> try (symbol thrift "binary") >> return BtBinary
 
-containerField = ContainerField <$> (mapType <|> setType <|> listType)
+containerField = FtContainer <$> (mapType <|> setType <|> listType)
 
 mapType        = do { try (symbol thrift "map")
                     ; (kt, vt) <- angles thrift $ do { k <- fieldType
@@ -186,27 +172,27 @@ mapType        = do { try (symbol thrift "map")
                                                      ; v <- fieldType
                                                      ; return (k, v)
                                                      }
-                    ; return $ MapType (kt, vt)
+                    ; return $ CtMap (kt, vt)
                     }
 
-setType        = SetType <$> (try (symbol thrift "set") *> angles thrift fieldType)
+setType        = CtSet <$> (try (symbol thrift "set") *> angles thrift fieldType)
 
-listType       = ListType <$> (try (symbol thrift "list") *> angles thrift fieldType)
+listType       = CtList <$> (try (symbol thrift "list") *> angles thrift fieldType)
 
 --- Constant values
 constValue     = doubleConstant <|> intConstant <|> stringConstant <|> namedConst <|> constList <|> constMap
 
-intConstant    = IntConstant <$> integer thrift
+intConstant    = CvInt <$> integer thrift
 
-doubleConstant = DoubleConstant <$> float thrift
+doubleConstant = CvDouble <$> float thrift
 
-stringConstant = LiteralString <$> literal
+stringConstant = CvLiteral <$> literal
 
-namedConst     = NamedConst <$> identifier thrift
+namedConst     = CvNamed <$> identifier thrift
 
-constList      = ConstList <$> brackets thrift (constValue `sepEndBy` listSeparator)
+constList      = CvList <$> brackets thrift (constValue `sepEndBy` listSeparator)
 
-constMap       = ConstMap <$> braces thrift (binding `sepEndBy` listSeparator)
+constMap       = CvMap <$> braces thrift (binding `sepEndBy` listSeparator)
 
 binding        = (,) <$> constValue <*> (symbol thrift ":" *> constValue)
 
@@ -225,10 +211,3 @@ sqLiteral     = lexeme thrift (
 stringChar    = noneOf "'"
 
 listSeparator = optionMaybe (lexeme thrift $ (char ';' <|> char ','))
-
-stIdentifier  = lexeme thrift (
-                  do{ start <- letter <|> char '_'
-                    ; next  <- many (alphaNum <|> oneOf ".-_")
-                    ; return start : next
-                    }
-                  <?> "smalltalk identifier")
