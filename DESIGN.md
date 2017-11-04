@@ -221,7 +221,7 @@ case class Profile(profile: ProfileAtom) extends AtomData
 case class Timeline(timeline: TimelineAtom) extends AtomData
 ```
 
-Note that we tag unions as structs, because their encoding looks is similar from the outside. We will reuse the `HMap` abstraction, even though there will only ever be a single value:
+Note that we tag unions as structs, because their encoding looks is similar from the outside. We will reuse the `HMap` abstraction, even though there will only ever be a single value (I've skipped the singleton type kung-fu, you can mentally fill in the blanks):
 
 ```scala
 object AtomData extends TStructCodec[AtomData] {
@@ -283,13 +283,13 @@ With Scala, we can provide an additional layer of type safety by using _value cl
 class Datetime(val value: Long) extends AnyVal with TTypeDef
 ```
 
-We still need to tag those values because the underlying values must be lifted during deserialization. The trait `TTypDef` is a phantom type:
+We still need to tag those values because the underlying values must be lifted during deserialization. The trait `TTypeDef` is a phantom type:
 
 ```scala
 trait TTypeDef extends Any
 ```
 
-The companion object provides the trival wrapping/unwrapping logic:
+The companion object provides trival wrapping/unwrapping logic:
 
 ```scala
 trait TTypeDefCodec[A, B] {
@@ -333,7 +333,7 @@ union AtomData {
 }
 ```
 
-Our compiler has to figure out (1) how to turn that include statement into a Scala `import` and (2) that the included document actually produces a type called `StoryQuestionsAtom`.
+Our compiler has to figure out (1) how to turn that include statement into a Scala `import` and (2) that the included document actually produces a type called `StoryQuestionsAtom` (Actually, the compiler will "typecheck" thrift types by making sure all types are defined, no matter if they are coming from a separate document or not).
 
 Formally, a Thrift document yields the tuple _σ_ = (_p_, _I_, _C_) where
 
@@ -341,39 +341,53 @@ Formally, a Thrift document yields the tuple _σ_ = (_p_, _I_, _C_) where
 - _I_ is a set of include statements { _i1_, ..., _in_ } where each _ii_ stands for a path to another Thrift document
 - _C_ is a set of types { _c1_, ..., _cn_ } where each _ci_ stands for an enum, a struct, a typedef or a union
 
-In our operational semantics, _i_ metavariables will range over import statements (which are just strings) and _c_ will range over types:
-
-i ::= string (includes)
-c ::= e | s | u | t | b (types)
-b ::= string | i8 | i16 | i32 | i64 | bool | double (base types)
-e ::= string (enums)
-s ::= string { c1, ..., cn } (structs)
-u ::= string { c1, ..., cn } (unions)
-t ::= string (typedefs)
-
-We will use the same strategy many compilers for languages with type polymorphism use, which is to use _type variables_ (in our case also _import variables_) and record a set of _constraints_ that must be unified for the compiler to produce a sensible output. A constraint is an equation X = Y where one side is a variable and the other a substitution for that variable. We therefore introduce variables in our semantics:
-
-v ::= I | C
-i ::= string | I
-c ::= e | s | u | t | b | C
+Our compiler produces a set _Σ_ = { _σ1_, ..., _σn_ }. We will use the same strategy many compilers for languages with type polymorphism use, which is to use _type variables_ (in our case also _import variables_) and record a set of _constraints_ that must be unified for the compiler to produce a sensible output. A constraint is an equation X = Y where each side is either a variable or a type (that may include other variables).
 
 Every time our compiler comes across an import statement, it will
 
-- create a fresh import variable
+- create a fresh import variable _I_
 - swap it in place of the statement
-- record a constraint I = t.p where t ∈ T
+- record a constraint _I_ = _σ_.p where _σ_ ∈ _Σ_
 
 Every time our compiler comes across a type prefixed with the filename of an import, it will
 
-- create a fresh type variable
+- create a fresh type variable _C_
 - swap it in place of the type
-- record a constraint C = _σ_.ci where _σ_ ∈ Σ and ci ∈ _σ_.C
+- record a constraint _C_ = _σ_.ci where _σ_ ∈ _Σ_ and ci ∈ _σ_.C
 
-The unification will try to resolve all these constraints. If it succeeds, great! We can move on to generating the Scala output. If it can't, boo it sucks: there's a mistake and the compiler must inform the user that shit happened.
+The set of constraints yields a substitution function that will unify our thrift term into a closed term (free of variables). If it succeeds, great! We can move on to generating the Scala output. If it can't, boo it sucks: there's a mistake and the compiler must inform the user that shit happened. If we do things correctly, we can even be super specific in the import statement, i.e. only include those things that are actually being used in the document.
 
-Oh, by the way: unification. The set of constraints will yield a substitution function where each variable must be replaced by its counterpart in the equation. This function will take an AST and produce a new AST as a result (in the happy path). 
+Say the document shared.thrift contains
 
-If we do things correctly, we can even be super specific in the import statement, i.e. only include those things that are actually being used in the document.
+```thrift
+package scala io.github.regiskuckaertz.shared
+
+typedef Datetime i64
+```
+
+and then another document contains
+
+```thrift
+include "shared.thrift"
+
+...
+
+struct ChangeRecord {
+  int64 userId
+  shared.Datetime when
+}
+```
+
+These together yield
+
+```scala
+import io.github.regiskuckaertz.shared.Datetime
+
+case class ChangeRecord {
+  userId: Long,
+  when: Datetime
+}
+```
 
 ## Consts
 
@@ -392,5 +406,4 @@ package io.github.regiskuckaertz.humbug
 
 package object sample {
   val MAX_CONNECTIONS: Int = 256
-}
 ```
