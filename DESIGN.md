@@ -283,13 +283,13 @@ With Scala, we can provide an additional layer of type safety by using _value cl
 class Datetime(val value: Long) extends AnyVal with TTypeDef
 ```
 
-We still need to tag those values because the underlying values must be lifted during deserialization. The trait `TTypeDef` is a phantom type:
+We still need to tag those values because the underlying values must be lifted during deserialization. We also tag with `TTypeDef`, that will come in handy later:
 
 ```scala
 trait TTypeDef extends Any
 ```
 
-The companion object provides trival wrapping/unwrapping logic:
+The companion object provides trivial wrapping/unwrapping logic:
 
 ```scala
 trait TTypeDefCodec[A, B] {
