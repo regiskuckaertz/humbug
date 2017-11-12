@@ -19,6 +19,7 @@ module Humbug.Scala
 , scalaTrait
 , scalaVal
 , scalaNew
+, scalaField
 , scalaLambda
 , scalaPair
 , scalaForC
@@ -48,6 +49,7 @@ data StmtF a =  StPackage Name
               | StTrait Name [a]
               | StVal Name Bool Bool [a]
               | StNew Name Bool [Argument] [a]
+              | StField Name Name [Argument] [a]
               | StLambda [Argument] [a]
               | StPair Value (Value, Maybe Type)
               | StForC [a] Value
@@ -92,6 +94,9 @@ scalaVal n o i = Fix . StVal n o i
 
 scalaNew :: Name -> Bool -> [Argument] -> [Stmt] -> Stmt
 scalaNew n o as = Fix . StNew n o as
+
+scalaField :: Name -> Name -> [Argument] -> [Stmt] -> Stmt
+scalaField n n' as = Fix . StField n n' as
 
 scalaLambda :: [Argument] -> [Stmt] -> Stmt
 scalaLambda as = Fix . StLambda as
