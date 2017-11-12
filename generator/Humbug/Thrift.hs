@@ -12,6 +12,7 @@ module Humbug.Thrift
   FieldType(..),
   ContainerType(..),
   ConstValue(..),
+  BaseType(..),
   Literal,
   Identifier
 ) where
