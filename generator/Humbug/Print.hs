@@ -23,7 +23,7 @@ print' (StImport n ns) = ["import " ++ n ++ "." ++ showImports ns]
 
 print' (StPackageObject n stmts) = ("package object " ++ n) : (showStatements " " $ concat stmts)
 
-print' (StSealedTrait n [] ccs) = ("sealed trait " ++ n) : (concat ccs)
+print' (StSealedTrait n p ccs) = ("sealed trait " ++ n ++ showAncestor p) : (concat ccs)
 
 print' (StCaseClass n as p) = ["case class " ++ n ++ (showArgs as) ++ (showAncestor p)]
 
@@ -55,36 +55,34 @@ print' (StLambda ps stmts) = (showArgs ps) : (showStatements " => " $ concat stm
 
 print' (StPair k v) = [k ++ " -> " ++ (showValue v)]
   where
-    showValue (v, Nothing) = v
-    showValue (v, Just t) = v ++ ": " ++ t
+    showValue (v, t) = maybe v ((v ++ ": ") ++) t
 
 print' (StForC stmts y) = (showStatements "for " $ concat stmts) ++ [" yield " ++ y]
 
 print' (StForV n v) = [n ++ " <- " ++ v]
+
+print' (StLiteral v) = [v]
 
 showStatements :: String -> [String] -> [String]
 showStatements _ [] = []
 showStatements pfx (stmt : []) = [pfx ++ stmt]
 showStatements pfx stmts = pfx : "{" : stmts ++ ["}"]
 
-showArgs :: [(String, Maybe String, Maybe String)] -> String
+showArgs :: [Argument] -> String
 showArgs [] = ""
 showArgs as = ("(" ++) $ (++ ")") $ concat $ intersperse "," $ map showArg as
 
-showArg :: (String, Maybe String, Maybe String) -> String
+showArg :: Argument -> String
 showArg (n, Nothing, Nothing) = n
 showArg (n, Just t, Nothing) = n ++ " : " ++ t
 showArg (n, Nothing, Just v) = n ++ " = " ++ v
 showArg (n, Just t, Just v) = n ++ " : " ++ t ++ " = " ++ v
 
-showType :: Maybe String -> String
-showType Nothing = ""
-showType (Just rt) = ": " ++ rt
+showType :: Maybe Type -> String
+showType = maybe "" (": " ++)
 
-showAncestor :: Maybe String -> String
-showAncestor Nothing = ""
-showAncestor (Just n) = " extends " ++ n
+showAncestor :: Maybe Name -> String
+showAncestor = maybe "" (" extends " ++)
 
-showValue :: Maybe String -> String
-showValue Nothing = ""
-showValue (Just v) = " = " ++ v
+showValue :: Maybe Value -> String
+showValue = maybe "" (" = " ++) 
