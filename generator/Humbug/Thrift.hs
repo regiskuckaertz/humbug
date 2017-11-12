@@ -30,7 +30,7 @@ data NamespaceScope = NsStar
                     | NsPerl 
                     | NsCocoa 
                     | NsCsharp 
-                    deriving show
+                    deriving Show
 
 data Definition = Const FieldType Identifier ConstValue
                 | Typedef FieldType Identifier
