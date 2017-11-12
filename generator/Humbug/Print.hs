@@ -46,7 +46,7 @@ print' (StVal n override implicit stmts) = ((showDecorators override implicit) +
     showDecorators True True = "override implicit "
     showDecorators False False = ""
 
-print' (StNew n caseclass vs stmts) = ((showNew caseclass) ++ n ++ (showArgs vs)) : (showStatements " " $ concat stmts)
+print' (StNew n caseclass vs stmts) = ((showNew caseclass) ++ n ++ "(" ++ (concat $ intersperse "," $ concat vs) ++ ")") : (showStatements " " $ concat stmts)
   where
     showNew True = ""
     showNew False = "new "
@@ -55,9 +55,9 @@ print' (StField n n' as stmts) = (n ++ "." ++ n' ++ (showArgs as)) : (showStatem
 
 print' (StLambda ps stmts) = (showArgs ps) : (showStatements " => " $ concat stmts)
 
-print' (StPair k v) = [k ++ " -> " ++ (showValue v)]
+print' (StPair k v vt) = [k ++ " -> " ++ (showValue v vt)]
   where
-    showValue (v, t) = maybe v ((v ++ ": ") ++) t
+    showValue v vt = maybe v ((v ++ ": ") ++) vt
 
 print' (StForC stmts y) = (showStatements "for " $ concat stmts) ++ [" yield " ++ y]
 

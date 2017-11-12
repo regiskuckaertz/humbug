@@ -49,10 +49,10 @@ data StmtF a =  StPackage Name
               | StCase Value (Maybe Type) [a]
               | StTrait Name [a]
               | StVal Name Bool Bool [a]
-              | StNew Name Bool [Argument] [a]
+              | StNew Name Bool [a] [a]
               | StField Name Name [Argument] [a]
               | StLambda [Argument] [a]
-              | StPair Value (Value, Maybe Type)
+              | StPair Value Value (Maybe Type)
               | StForC [a] Value
               | StForV Name Value
               | StLiteral String
@@ -94,7 +94,7 @@ scalaTrait n = Fix . StTrait n
 scalaVal :: Name -> Bool -> Bool -> [Stmt] -> Stmt
 scalaVal n o i = Fix . StVal n o i
 
-scalaNew :: Name -> Bool -> [Argument] -> [Stmt] -> Stmt
+scalaNew :: Name -> Bool -> [Stmt] -> [Stmt] -> Stmt
 scalaNew n o as = Fix . StNew n o as
 
 scalaField :: Name -> Name -> [Argument] -> [Stmt] -> Stmt
@@ -103,8 +103,8 @@ scalaField n n' as = Fix . StField n n' as
 scalaLambda :: [Argument] -> [Stmt] -> Stmt
 scalaLambda as = Fix . StLambda as
 
-scalaPair :: Value -> (Value, Maybe Type) -> Stmt
-scalaPair v = Fix . StPair v
+scalaPair :: Value -> Value -> Maybe Type -> Stmt
+scalaPair v v' = Fix . StPair v v'
 
 scalaForC :: [Stmt] -> Value -> Stmt
 scalaForC ss = Fix . StForC ss
