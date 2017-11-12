@@ -150,7 +150,7 @@ object Rights extends TStructCodec[Rights] {
   implicit val r3 = new TFieldCodec[w3.T, Option[Boolean]]
 
   override val defaults = HMap[TFieldCodec](
-    w1.value -> (Some(false): Option[Boolean]),
+    w2.value -> (Some(false): Option[Boolean]),
     w3.value -> (None: Option[Boolean])
   )
   
