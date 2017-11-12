@@ -25,6 +25,7 @@ module Humbug.Scala
 , scalaForC
 , scalaForV
 , scalaLiteral
+, scalaIdent
 ) where
 
 import Data.Fix
@@ -55,6 +56,7 @@ data StmtF a =  StPackage Name
               | StForC [a] Value
               | StForV Name Value
               | StLiteral String
+              | StIdent Name
               deriving (Show, Functor)
               
 type Stmt = Fix StmtF
@@ -112,3 +114,6 @@ scalaForV n = Fix . StForV n
 
 scalaLiteral :: Show a => a -> Stmt
 scalaLiteral = Fix . StLiteral . show
+
+scalaIdent :: Name -> Stmt
+scalaIdent = Fix . StIdent

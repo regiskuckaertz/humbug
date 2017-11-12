@@ -65,6 +65,8 @@ print' (StForV n v) = [n ++ " <- " ++ v]
 
 print' (StLiteral v) = [v]
 
+print' (StIdent i) = [i]
+
 showStatements :: String -> [String] -> [String]
 showStatements _ [] = []
 showStatements pfx (stmt : []) = [pfx ++ stmt]
