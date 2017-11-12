@@ -172,7 +172,7 @@ mapType        = do { try (symbol thrift "map")
                                                      ; v <- fieldType
                                                      ; return (k, v)
                                                      }
-                    ; return $ CtMap (kt, vt)
+                    ; return $ CtMap kt vt
                     }
 
 setType        = CtSet <$> (try (symbol thrift "set") *> angles thrift fieldType)

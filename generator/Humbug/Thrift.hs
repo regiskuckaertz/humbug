@@ -69,7 +69,7 @@ data BaseType = BtBool
               | BtBinary
               deriving Show
 
-data ContainerType = CtMap (FieldType, FieldType)
+data ContainerType = CtMap FieldType FieldType
                    | CtSet FieldType
                    | CtList FieldType
                    deriving Show
