@@ -17,13 +17,13 @@ module Humbug.Scala
 , scalaMethod
 , scalaCase
 , scalaTrait
-, scalaArgument
 , scalaVal
 , scalaNew
 , scalaLambda
 , scalaPair
 , scalaForC
 , scalaForV
+, scalaLiteral
 ) where
 
 import Data.Fix
@@ -39,20 +39,20 @@ type Argument = (Name, Maybe Type, Maybe Value)
 data StmtF a =  StPackage Name
               | StImport Name [(Name, Maybe Name)]
               | StPackageObject Name [a]
-              | StSealedTrait Name [Name] [a]
+              | StSealedTrait Name (Maybe Name) [a]
               | StCaseClass Name [Argument] (Maybe Name)
               | StCaseObject Name [Argument] Name
               | StCompanionObject Name (Maybe Name) [a]
               | StMethod Name Bool [Argument] (Maybe Type) [a]
               | StCase Value (Maybe Type) [a]
               | StTrait Name [a]
-              | StArgument Name Type (Maybe Value)
               | StVal Name Bool Bool [a]
               | StNew Name Bool [Argument] [a]
               | StLambda [Argument] [a]
               | StPair Value (Value, Maybe Type)
               | StForC [a] Value
               | StForV Name Value
+              | StLiteral String
               deriving (Show, Functor)
               
 type Stmt = Fix StmtF
@@ -66,7 +66,7 @@ scalaImport n = Fix . StImport n
 scalaPackageObject :: Name -> [Stmt] -> Stmt
 scalaPackageObject n = Fix . StPackageObject n
 
-scalaSealedTrait :: Name -> [Name] -> [Stmt] -> Stmt
+scalaSealedTrait :: Name -> Maybe Name -> [Stmt] -> Stmt
 scalaSealedTrait n as = Fix . StSealedTrait n as
 
 scalaCaseClass :: Name -> [Argument] -> Maybe Name -> Stmt
@@ -87,9 +87,6 @@ scalaCase v t = Fix . StCase v t
 scalaTrait :: Name -> [Stmt] -> Stmt
 scalaTrait n = Fix . StTrait n
 
-scalaArgument :: Name -> Type -> (Maybe Value) -> Stmt
-scalaArgument n t = Fix . StArgument n t
-
 scalaVal :: Name -> Bool -> Bool -> [Stmt] -> Stmt
 scalaVal n o i = Fix . StVal n o i
 
@@ -107,3 +104,6 @@ scalaForC ss = Fix . StForC ss
 
 scalaForV :: Name -> Value -> Stmt
 scalaForV n = Fix . StForV n
+
+scalaLiteral :: Show a => a -> Stmt
+scalaLiteral = Fix . StLiteral . show
