@@ -48,7 +48,7 @@ data StmtF a =  StPackage Name
               | StMethod Name Bool [Argument] (Maybe Type) [a]
               | StCase Value (Maybe Type) [a]
               | StTrait Name [a]
-              | StVal Name Bool Bool [a]
+              | StVal Name Bool Bool (Maybe Type) [a]
               | StNew Name Bool [a] [a]
               | StField Name Name [Argument] [a]
               | StLambda [Argument] [a]
@@ -91,8 +91,8 @@ scalaCase v t = Fix . StCase v t
 scalaTrait :: Name -> [Stmt] -> Stmt
 scalaTrait n = Fix . StTrait n
 
-scalaVal :: Name -> Bool -> Bool -> [Stmt] -> Stmt
-scalaVal n o i = Fix . StVal n o i
+scalaVal :: Name -> Bool -> Bool -> Maybe Type -> [Stmt] -> Stmt
+scalaVal n o i t = Fix . StVal n o i t
 
 scalaNew :: Name -> Bool -> [Stmt] -> [Stmt] -> Stmt
 scalaNew n o as = Fix . StNew n o as

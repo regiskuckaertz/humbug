@@ -76,10 +76,13 @@ buildStruct ident fs = let
       wits = map buildWitness zfids
       imps = map buildFieldCodec zfids
       maps = foldr buildDefaultValue [] zfs
+      --- TODO
       hmap = scalaNew "HMap[TFieldCodec]" True maps []
-      defs = scalaVal "defaults" True False [hmap]
+      defs = scalaVal "defaults" True False Nothing [hmap]
+      --- TODO
       hmap' = scalaNew "HMap[TFieldCodec]" True [] []
       lenc = scalaLambda [("x", Nothing, Nothing)] [hmap']
+      --- TODO
       ldec = scalaLambda [("m", Nothing, Nothing)] []
       menc = scalaMethod "encode" True [] Nothing [lenc]
       mdec = scalaMethod "decode" True [] Nothing [ldec]
@@ -138,13 +141,13 @@ buildFieldIds _ (fids, fid) = (fid : fids, fid - 1)
 buildWitness :: (Int, Int) -> Stmt
 buildWitness (fid, var) = let
   wit = scalaNew "Witness" True [scalaLiteral fid] []
-  in scalaVal ("w" ++ show var) False False [wit]
+  in scalaVal ("w" ++ show var) False False Nothing [wit]
 
 buildFieldCodec :: (Int, Int) -> Stmt
 buildFieldCodec (fid, var) = let
   fn = "TFieldCodec[w" ++ (show var) ++ "," ++ "Nothing" ++ "]"
   fc = scalaNew fn False [] []
-  in scalaVal ("r" ++ show var) False True [fc]
+  in scalaVal ("r" ++ show var) False True Nothing [fc]
 
 buildUnions :: [Definition] -> Map.Map FilePath [Stmt]
 buildUnions _ = Map.empty

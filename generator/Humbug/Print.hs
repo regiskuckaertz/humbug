@@ -39,7 +39,7 @@ print' (StCase v vt stmts) = ("case " ++ v ++ (showType vt)) : (showStatements "
 
 print' (StTrait n stmts) = ("trait " ++ n) : (showStatements " " $ concat stmts)
 
-print' (StVal n override implicit stmts) = ((showDecorators override implicit) ++ "val " ++ n) :  (showStatements " = " $ concat stmts)
+print' (StVal n override implicit vt stmts) = ((showDecorators override implicit) ++ "val " ++ n ++ showType vt) :  (showStatements " = " $ concat stmts)
   where
     showDecorators True False = "override "
     showDecorators False True = "implicit "
