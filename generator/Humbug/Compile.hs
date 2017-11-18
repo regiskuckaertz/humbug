@@ -149,9 +149,38 @@ buildFieldCodec (fid, var) = let
   fc = scalaNew fn False [] []
   in scalaVal ("r" ++ show var) False True Nothing [fc]
 
-buildUnions :: [Definition] -> Map.Map FilePath [Stmt]
-buildUnions _ = Map.empty
+buildException :: Identifier -> [Field] -> Map.Map FilePath [Stmt]
+buildException ident fs = Map.empty
+  cvs = map buildValue $ snd cs'
+  cs'' = map (\(k,v) -> k ++ "->" ++ v) $ zip cks cvs
+  in "List(" ++ (concat $ intersperse "," cs'') ++ ")"
 
-buildExceptions :: [Definition] -> Map.Map FilePath [Stmt]
-buildExceptions _ = Map.empty
+buildField :: Field -> Argument
+buildField (Field _ fr ft ident fv) = case fr of
+  (Just Optional) -> let fv' = maybe "None" (\fv -> "Some(" ++ (buildValue fv) ++ ")") fv
+                     in (ident, Just ("Option[" ++ buildType ft ++ "]"), Just fv')
+  _ -> (ident, Just (buildType ft), Nothing)
 
+buildFieldIds :: Field -> ([Int], Int) -> ([Int], Int)
+buildFieldIds (Field (Just fid) _ _ _ _) (fids, fid') = (fid : fids, fid')
+buildFieldIds _ (fids, fid) = (fid : fids, fid - 1)
+
+buildWitness :: (Int, Int) -> Stmt
+buildWitness (fid, var) = let
+  wit = scalaNew "Witness" True [scalaLiteral fid] []
+  in scalaVal ("w" ++ show var) False False Nothing [wit]
+
+buildFieldCodec :: (Int, Int) -> Stmt
+buildFieldCodec (fid, var) = let
+  fn = "TFieldCodec[w" ++ (show var) ++ "," ++ "Nothing" ++ "]"
+  fc = scalaNew fn False [] []
+  in scalaVal ("r" ++ show var) False True Nothing [fc]
+
+buildException :: Identifier -> [Field] -> Map.Map FilePath [Stmt]
+buildException ident fs = Map.empty
+
+buildConst :: FieldType -> Identifier -> ConstValue -> Map.Map FilePath [Stmt]
+buildConst ft ident cv = let
+  cnst = scalaVal ident False False (Just $ buildType ft) []
+  pkg = scalaPackageObject "tmp" [cnst]
+  in Map.singleton "package" [pkg]
