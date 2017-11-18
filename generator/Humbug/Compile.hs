@@ -2,6 +2,7 @@ module Humbug.Compile
 ( compile
 ) where
 
+import Data.Char(toUpper)
 import Data.List(elemIndices, intersperse)
 import qualified Data.Map.Strict as Map
 import Humbug.Scala
@@ -94,6 +95,32 @@ buildStruct ident fs = let
       in (v : vs)
     buildDefaultValue _ vs = vs
 
+buildUnion :: Identifier -> [Field] -> Map.Map FilePath [Stmt]
+buildUnion ident fs = let
+  st = scalaSealedTrait ident (Just "TStruct") []
+  ccs = buildCaseClasses
+  vs = iterate (+1) 1
+  fids = fst $ foldr buildFieldIds ([], -1) fs
+  zfs = zip fids fs
+  zfids = zip fids $ vs
+  wits = map buildWitness zfids
+  imps = map buildFieldCodec zfids
+  menc = scalaMethod "encode" True [] Nothing $ map buildEncode zfs
+  ldec = scalaLambda [("m", Nothing, Nothing)] $ map buildDecode zfs
+  --- TODO
+  mdec = scalaMethod "decode" True [] Nothing []
+  co = scalaCompanionObject ident (Just $ "TStructCodec[" ++ ident ++ "]") (wits ++ imps ++ [menc, mdec])
+  in Map.singleton ident ((st : ccs) ++ [co])
+  where
+    buildCaseClasses = map (\f ->
+      case f of 
+        (Field fid _ ft fn _) -> scalaCaseClass (buildClassName fn) [(fn, Just $ buildType ft, Nothing)] (Just ident)
+      ) fs
+    buildClassName (c : cs) = (toUpper c : cs)
+    buildEncode (fid, Field _ _ _ fn _) = scalaCase ((buildClassName fn) ++ "(x)") Nothing [scalaNew "HMap[TFieldCodec]" True [] []]
+    --- TODO
+    buildDecode (fid, f) = scalaField "m" "get" [(show fid, Nothing, Nothing)] []
+
 buildType :: FieldType -> String
 buildType (FtBase BtBool) = "Boolean"
 buildType (FtBase BtByte) = "Byte"
@@ -124,33 +151,6 @@ buildValue (CvList cs) = let
 buildValue (CvMap cs) = let
   cs' = unzip cs
   cks = map buildValue $ fst cs'
-  cvs = map buildValue $ snd cs'
-  cs'' = map (\(k,v) -> k ++ "->" ++ v) $ zip cks cvs
-  in "List(" ++ (concat $ intersperse "," cs'') ++ ")"
-
-buildField :: Field -> Argument
-buildField (Field _ fr ft ident fv) = case fr of
-  (Just Optional) -> let fv' = maybe "None" (\fv -> "Some(" ++ (buildValue fv) ++ ")") fv
-                     in (ident, Just ("Option[" ++ buildType ft ++ "]"), Just fv')
-  _ -> (ident, Just (buildType ft), Nothing)
-
-buildFieldIds :: Field -> ([Int], Int) -> ([Int], Int)
-buildFieldIds (Field (Just fid) _ _ _ _) (fids, fid') = (fid : fids, fid')
-buildFieldIds _ (fids, fid) = (fid : fids, fid - 1)
-
-buildWitness :: (Int, Int) -> Stmt
-buildWitness (fid, var) = let
-  wit = scalaNew "Witness" True [scalaLiteral fid] []
-  in scalaVal ("w" ++ show var) False False Nothing [wit]
-
-buildFieldCodec :: (Int, Int) -> Stmt
-buildFieldCodec (fid, var) = let
-  fn = "TFieldCodec[w" ++ (show var) ++ "," ++ "Nothing" ++ "]"
-  fc = scalaNew fn False [] []
-  in scalaVal ("r" ++ show var) False True Nothing [fc]
-
-buildException :: Identifier -> [Field] -> Map.Map FilePath [Stmt]
-buildException ident fs = Map.empty
   cvs = map buildValue $ snd cs'
   cs'' = map (\(k,v) -> k ++ "->" ++ v) $ zip cks cvs
   in "List(" ++ (concat $ intersperse "," cs'') ++ ")"
