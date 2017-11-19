@@ -48,12 +48,12 @@ buildImports (_ : hs) = buildImports hs
 buildTypedef :: Identifier -> FieldType -> [Stmt]
 buildTypedef ident ft = let
   ft' = buildType ft
-  cv = scalaCaseClass ident [("value", Just ft', Nothing)] ["AnyVal", "TTypeDef"]
+  vc = scalaCaseClass ident [("value", Just ft', Nothing)] ["AnyVal", "TTypeDef"]
   ex = "TTypeDefCodec[" ++ ident ++ "," ++ (buildType ft) ++ "]"
   menc = scalaMethod "encode" True [] Nothing [scalaField (scalaIdent "_") "value" [] []]
   mdec = scalaMethod "decode" True [] Nothing [scalaNew ident False [scalaIdent "_"] []]
   o = scalaCompanionObject ident (Just ex) [menc, mdec]
-  in [cv, o]
+  in [vc, o]
 
 buildEnum :: Identifier -> [(Identifier, Maybe ConstValue)] -> [Stmt]
 buildEnum ident fs = [buildSealedTrait, buildCompanionObject]
