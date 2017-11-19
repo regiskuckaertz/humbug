@@ -78,7 +78,6 @@ showArguments as = "(" ++ concat as ++ ")"
 
 showArgs :: [Argument] -> String
 showArgs [] = ""
-showArgs [a] = showArg a
 showArgs as = ("(" ++) $ (++ ")") $ concat $ intersperse "," $ map showArg as
 
 showArg :: Argument -> String
