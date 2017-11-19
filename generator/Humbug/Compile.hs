@@ -127,7 +127,7 @@ buildStruct ident fs = let
 
 buildUnion :: Identifier -> [Field] -> [Stmt]
 buildUnion ident fs = let
-  st = scalaSealedTrait ident (Just "TStruct") []
+  st = scalaSealedTrait ident (Just "TUnion") []
   ccs = map buildCaseClass fs
   vs = iterate (+1) 1
   fids = fst $ foldr buildFieldIds ([], -1) fs
@@ -138,7 +138,7 @@ buildUnion ident fs = let
   menc = scalaMethod "encode" True [] Nothing $ map buildEncode zfs
   ldec = scalaLambda [("m", Nothing, Nothing)] $ [foldr1 (\fa fb -> scalaField fa "orElse" [fb] []) $ map buildDecode zfs]
   mdec = scalaMethod "decode" True [] Nothing [ldec]
-  co = scalaCompanionObject ident (Just $ "TStructCodec[" ++ ident ++ "]") (wits ++ imps ++ [menc, mdec])
+  co = scalaCompanionObject ident (Just $ "TUnionCodec[" ++ ident ++ "]") (wits ++ imps ++ [menc, mdec])
   in (st : ccs) ++ [co]
   where
     buildCaseClass (Field fid _ ft fn _) = 
