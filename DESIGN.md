@@ -221,7 +221,7 @@ case class Profile(profile: ProfileAtom) extends AtomData
 case class Timeline(timeline: TimelineAtom) extends AtomData
 ```
 
-Note that we tag unions as structs, because their encoding looks is similar from the outside. We will reuse the `HMap` abstraction, even though there will only ever be a single value (I've skipped the singleton type kung-fu, you can mentally fill in the blanks):
+Note that we tag unions as structs, because their encoding is similar from the outside. We will reuse the `HMap` abstraction, even though there will only ever be a single value (I've skipped the singleton type kung-fu, you can mentally fill in the blanks):
 
 ```scala
 object AtomData extends TStructCodec[AtomData] {
@@ -406,4 +406,5 @@ package io.github.regiskuckaertz.humbug
 
 package object sample {
   val MAX_CONNECTIONS: Int = 256
+}
 ```
