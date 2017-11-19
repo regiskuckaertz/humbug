@@ -20,7 +20,7 @@ compile' (Const ft ident cv) = Map.empty
 compile' (Typedef ft ident) = Map.singleton ident (buildTypedef ident ft)
 compile' (Enum ident vs) = Map.singleton ident (buildEnum ident vs)
 compile' (Struct ident fs) = Map.singleton ident (buildStruct ident fs)
-compile' (Union ident fs) = Map.empty
+compile' (Union ident fs) = Map.singleton ident (buildUnion ident fs)
 compile' (Exception ident fs) = Map.empty
 compile' (Service ident pident fns) = Map.empty
 
@@ -109,33 +109,32 @@ buildStruct ident fs = let
       f'' = scalaField f "orElse" [f'] []
       in scalaGenerator ident f''
 
-buildUnion :: Identifier -> [Field] -> Map.Map FilePath [Stmt]
+buildUnion :: Identifier -> [Field] -> [Stmt]
 buildUnion ident fs = let
   st = scalaSealedTrait ident (Just "TStruct") []
-  ccs = buildCaseClasses
+  ccs = map buildCaseClass fs
   vs = iterate (+1) 1
   fids = fst $ foldr buildFieldIds ([], -1) fs
-  zfs = zip fids fs
-  zfids = zip fids $ vs
+  zfids = zip fids vs
+  zfs = zip fs vs
   wits = map buildWitness zfids
-  imps = map buildFieldCodec zfids
+  imps = map buildFieldCodec zfs
   menc = scalaMethod "encode" True [] Nothing $ map buildEncode zfs
-  ldec = scalaLambda [("m", Nothing, Nothing)] $ map buildDecode zfs
-  --- TODO
-  mdec = scalaMethod "decode" True [] Nothing []
+  ldec = scalaLambda [("m", Nothing, Nothing)] $ [foldr1 (\fa fb -> scalaField fa "orElse" [fb] []) $ map buildDecode zfs]
+  mdec = scalaMethod "decode" True [] Nothing [ldec]
   co = scalaCompanionObject ident (Just $ "TStructCodec[" ++ ident ++ "]") (wits ++ imps ++ [menc, mdec])
-  in Map.singleton ident ((st : ccs) ++ [co])
+  in (st : ccs) ++ [co]
   where
-    buildCaseClasses = map (\f ->
-      case f of 
-        (Field fid _ ft fn _) -> scalaCaseClass (buildClassName fn) [(fn, Just $ buildType ft, Nothing)] [ident]
-      ) fs
+    buildCaseClass (Field fid _ ft fn _) = 
+      scalaCaseClass (buildClassName fn) [(fn, Just $ buildType ft, Nothing)] [ident]
     buildClassName (c : cs) = (toUpper c : cs)
-    buildEncode (fid, Field _ _ _ fn _) = scalaCase ((buildClassName fn) ++ "(x)") Nothing [scalaNew "HMap[TFieldCodec]" True [] []]
-    --- TODO
-    buildDecode (fid, (Field _ _ _ ident _)) = let
-      f = scalaField (scalaIdent "m") "get" [scalaLiteral fid] []
-      in scalaField f "map" [scalaNew ident True [scalaIdent "_"] []] []
+    buildEncode (Field _ _ _ fn _, wid) = let
+      n = scalaNew "HMap[TFieldCodec]" True [scalaPair ("w" ++ show wid ++ ".value") "x" Nothing] []
+      in scalaCase ((buildClassName fn) ++ "(x)") Nothing [n]
+    buildDecode (Field _ _ _ ident _, wid) = let
+      f = scalaField (scalaIdent "m") "get" [scalaField (scalaIdent $ "w" ++ show wid) "value" [] []] []
+      n = scalaNew (buildClassName ident) True [scalaIdent "_"] []
+      in scalaField f "map" [n] []
 
 buildType :: FieldType -> String
 buildType (FtBase BtBool) = "Boolean"
