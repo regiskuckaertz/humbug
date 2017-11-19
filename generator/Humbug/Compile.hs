@@ -227,7 +227,7 @@ buildFieldCodec (Field _ fr ft _ _, var) = let
   ft'' = case fr of
     Just Optional -> "Option[" ++ ft' ++ "]"
     _ -> ft'
-  fn = "TFieldCodec[w" ++ (show var) ++ "," ++ ft'' ++ "]"
+  fn = "TFieldCodec[w" ++ (show var) ++ ".T," ++ ft'' ++ "]"
   fc = scalaNew fn False [] []
   in scalaVal ("r" ++ show var) False True Nothing [fc]
 
