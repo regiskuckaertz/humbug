@@ -52,7 +52,7 @@ data StmtF a =  StPackage Name
               | StNew Name Bool [a] [a]
               | StField a Name [a] [a]
               | StLambda [Argument] [a]
-              | StPair Value Value (Maybe Type)
+              | StPair a a
               | StFor [a] [a]
               | StGenerator Name a
               | StLiteral String
@@ -103,8 +103,8 @@ scalaField n n' as = Fix . StField n n' as
 scalaLambda :: [Argument] -> [Stmt] -> Stmt
 scalaLambda as = Fix . StLambda as
 
-scalaPair :: Value -> Value -> Maybe Type -> Stmt
-scalaPair v v' = Fix . StPair v v'
+scalaPair :: Stmt -> Stmt -> Stmt
+scalaPair v = Fix . StPair v
 
 scalaFor :: [Stmt] -> [Stmt] -> Stmt
 scalaFor ss = Fix . StFor ss

@@ -7,12 +7,12 @@ import Data.List(concat, intersperse)
 import Humbug.Scala
 
 printScala :: Stmt -> String
-printScala = concat . intersperse "\n" . cata print'
+printScala = cata print'
 
-print' :: StmtF [String] -> [String]
-print' (StPackage n) = ["package " ++ n]
+print' :: StmtF String -> String
+print' (StPackage n) = "package " ++ n
 
-print' (StImport n ns) = ["import " ++ n ++ "." ++ showImports ns]
+print' (StImport n ns) = "import " ++ n ++ "." ++ showImports ns
   where
     showImports [] = "_"
     showImports (n : []) = concat $ showImport n []
@@ -21,56 +21,53 @@ print' (StImport n ns) = ["import " ++ n ++ "." ++ showImports ns]
     showImport (n, Nothing) res = n : res
     showImport (n, Just a) res = (n ++ "=>" ++ a) : res
 
-print' (StPackageObject n stmts) = ("package object " ++ n) : (showStatements " " $ concat stmts)
+print' (StPackageObject n stmts) = "package object " ++ n ++ showStatements stmts
 
-print' (StSealedTrait n p ccs) = ("sealed trait " ++ n ++ showAncestor p) : (concat ccs)
+print' (StSealedTrait n p ccs) = "sealed trait " ++ n ++ showAncestor p ++ "\n" ++ (concat $ intersperse "\n" ccs)
 
-print' (StCaseClass n as ps) = ["case class " ++ n ++ (showArgs as) ++ (showAncestors ps)]
+print' (StCaseClass n as ps) = "case class " ++ n ++ showArgs as ++ showAncestors ps
 
-print' (StCaseObject n as p) = ["case object " ++ n ++ (showArgs as) ++ (showAncestor (Just p))]
+print' (StCaseObject n as p) = "case object " ++ n ++ showArgs as ++ showAncestor (Just p)
 
-print' (StCompanionObject n p stmts) = ("object " ++ n ++ (showAncestor p)) : (showStatements " " $ concat stmts)
+print' (StCompanionObject n p stmts) = "object " ++ n ++ showAncestor p ++ showStatements stmts
 
-print' (StMethod n override as rt stmts) = (showOverride ++ "def " ++ n ++ (showArgs as) ++ (showType rt)) : (showStatements " = " $ concat stmts)
+print' (StMethod n override as rt stmts) = showOverride ++ "def " ++ n ++ showArgs as ++ showType rt ++ " = " ++ showStatements stmts
   where
     showOverride = if override then "override " else ""
     
-print' (StCase v vt stmts) = ("case " ++ v ++ (showType vt)) : (showStatements " => " $ concat stmts)
+print' (StCase v vt stmts) = "case " ++ v ++ showType vt ++ " => " ++ showStatements stmts
 
-print' (StTrait n stmts) = ("trait " ++ n) : (showStatements " " $ concat stmts)
+print' (StTrait n stmts) = "trait " ++ n ++ showStatements stmts
 
-print' (StVal n override implicit vt stmts) = ((showDecorators override implicit) ++ "val " ++ n ++ showType vt) :  (showStatements " = " $ concat stmts)
+print' (StVal n override implicit vt stmts) = showDecorators override implicit ++ "val " ++ n ++ showType vt ++ " = " ++ showStatements stmts
   where
     showDecorators True False = "override "
     showDecorators False True = "implicit "
     showDecorators True True = "override implicit "
     showDecorators False False = ""
 
-print' (StNew n caseclass vs stmts) = ((showNew caseclass) ++ n ++ "(" ++ (concat $ intersperse "," $ concat vs) ++ ")") : (showStatements " " $ concat stmts)
+print' (StNew n caseclass vs stmts) = showNew ++ n ++ "(" ++ (concat $ intersperse "," vs) ++ ")" ++ showStatements stmts
   where
-    showNew True = ""
-    showNew False = "new "
+    showNew = if caseclass then "" else "new "
 
-print' (StField n n' as stmts) = ((concat n) ++ "." ++ n' ++ (showArguments $ concat as)) : (showStatements "" $ concat stmts)
+print' (StField n n' as stmts) = n ++ "." ++ n' ++ showArguments as ++ (showStatements stmts)
 
-print' (StLambda ps stmts) = [concat $ (showArgs ps) : (showStatements " => " $ concat stmts)]
+print' (StLambda ps stmts) = showArgs ps ++ " => " ++ showStatements stmts
 
-print' (StPair k v vt) = [k ++ " -> " ++ (showValue v vt)]
-  where
-    showValue v vt = maybe v ((v ++ ": ") ++) vt
+print' (StPair k v) = k ++ " -> " ++ v
 
-print' (StFor stmts ys) = [concat $ (showStatements "for " $ concat stmts) ++ (showStatements " yield " $ concat ys)]
+print' (StFor stmts ys) = "for " ++ showStatements stmts ++ " yield " ++ showStatements ys
 
-print' (StGenerator n stmt) = [n ++ " <- " ++ (concat stmt)]
+print' (StGenerator n stmt) = n ++ " <- " ++ stmt
 
-print' (StLiteral v) = [v]
+print' (StLiteral v) = v
 
-print' (StIdent i) = [i]
+print' (StIdent i) = i
 
-showStatements :: String -> [String] -> [String]
-showStatements _ [] = []
-showStatements pfx [stmt] = [pfx ++ stmt]
-showStatements pfx stmts = pfx : "{" : stmts ++ ["}"]
+showStatements :: [String] -> String
+showStatements [] = []
+showStatements [stmt] = stmt
+showStatements stmts = "{\n" ++ (concat $ intersperse "\n" stmts) ++ "\n}"
 
 showArguments :: [String] -> String
 showArguments [] = []
