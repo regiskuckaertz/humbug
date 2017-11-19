@@ -51,15 +51,15 @@ print' (StNew n caseclass vs stmts) = ((showNew caseclass) ++ n ++ "(" ++ (conca
     showNew True = ""
     showNew False = "new "
 
-print' (StField n n' as stmts) = ((concat n) ++ "." ++ n' ++ (concat $ concat as)) : (showStatements "" $ concat stmts)
+print' (StField n n' as stmts) = ((concat n) ++ "." ++ n' ++ (showArguments $ concat as)) : (showStatements "" $ concat stmts)
 
-print' (StLambda ps stmts) = (showArgs ps) : (showStatements " => " $ concat stmts)
+print' (StLambda ps stmts) = [concat $ (showArgs ps) : (showStatements " => " $ concat stmts)]
 
 print' (StPair k v vt) = [k ++ " -> " ++ (showValue v vt)]
   where
     showValue v vt = maybe v ((v ++ ": ") ++) vt
 
-print' (StFor stmts ys) = (showStatements "for " $ concat stmts) ++ (showStatements " yield " $ concat ys)
+print' (StFor stmts ys) = [concat $ (showStatements "for " $ concat stmts) ++ (showStatements " yield " $ concat ys)]
 
 print' (StGenerator n stmt) = [n ++ " <- " ++ (concat stmt)]
 
@@ -69,11 +69,16 @@ print' (StIdent i) = [i]
 
 showStatements :: String -> [String] -> [String]
 showStatements _ [] = []
-showStatements pfx (stmt : []) = [pfx ++ stmt]
+showStatements pfx [stmt] = [pfx ++ stmt]
 showStatements pfx stmts = pfx : "{" : stmts ++ ["}"]
+
+showArguments :: [String] -> String
+showArguments [] = []
+showArguments as = "(" ++ concat as ++ ")"
 
 showArgs :: [Argument] -> String
 showArgs [] = ""
+showArgs [a] = showArg a
 showArgs as = ("(" ++) $ (++ ")") $ concat $ intersperse "," $ map showArg as
 
 showArg :: Argument -> String
