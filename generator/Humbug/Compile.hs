@@ -93,6 +93,9 @@ buildStruct ident fs = let
       mv = maybe "None" (\v -> "Some(" ++ (buildValue v) ++ ")") cv
       v = scalaPair ("w" ++ (show wid) ++ ".value") mv Nothing
       in (v : vs)
+    buildDefaultValue (Field _ _ ft _ (Just cv), wid) vs = let
+      v = scalaPair ("w" ++ (show wid) ++ ".value") (buildValue cv) Nothing
+      in (v : vs)
     buildDefaultValue _ vs = vs
 
 buildUnion :: Identifier -> [Field] -> Map.Map FilePath [Stmt]
