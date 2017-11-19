@@ -59,9 +59,9 @@ print' (StPair k v vt) = [k ++ " -> " ++ (showValue v vt)]
   where
     showValue v vt = maybe v ((v ++ ": ") ++) vt
 
-print' (StForC stmts y) = (showStatements "for " $ concat stmts) ++ [" yield " ++ y]
+print' (StFor stmts ys) = (showStatements "for " $ concat stmts) ++ (showStatements " yield " $ concat ys)
 
-print' (StForV n v) = [n ++ " <- " ++ v]
+print' (StGenerator n stmt) = [n ++ " <- " ++ (concat stmt)]
 
 print' (StLiteral v) = [v]
 

@@ -83,8 +83,11 @@ buildStruct ident fs = let
       maps' = map buildWitnessField zfs
       hmap' = scalaNew "HMap[TFieldCodec]" True maps' []
       lenc = scalaLambda [("x", Nothing, Nothing)] [hmap']
-      --- TODO
-      ldec = scalaLambda [("m", Nothing, Nothing)] []
+      as = map buildAssignment zfs
+      fns = map (\(Field _ _ _ ident _) -> ident) fs
+      c = scalaNew ident True (map scalaIdent fns) []
+      for = scalaFor as [c]
+      ldec = scalaLambda [("m", Nothing, Nothing)] [for]
       menc = scalaMethod "encode" True [] Nothing [lenc]
       mdec = scalaMethod "decode" True [] Nothing [ldec]
       p = "TStructCodec[" ++ ident ++ "]"
@@ -99,6 +102,12 @@ buildStruct ident fs = let
     buildDefaultValue _ vs = vs
     buildWitnessField (Field _ _ _ ident _, wid) =
       scalaPair ("w" ++ (show wid) ++ ".value") ("x." ++ ident) Nothing
+    buildAssignment (Field _ _ _ ident _, wid) = let
+      w = scalaField (scalaIdent ("w" ++ show wid)) "value" [] []
+      f = scalaField (scalaIdent "m") "get" [w] []
+      f' = scalaField (scalaIdent "defaults") "get" [w] []
+      f'' = scalaField f "orElse" [f'] []
+      in scalaGenerator ident f''
 
 buildUnion :: Identifier -> [Field] -> Map.Map FilePath [Stmt]
 buildUnion ident fs = let

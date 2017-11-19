@@ -22,8 +22,8 @@ module Humbug.Scala
 , scalaField
 , scalaLambda
 , scalaPair
-, scalaForC
-, scalaForV
+, scalaFor
+, scalaGenerator
 , scalaLiteral
 , scalaIdent
 ) where
@@ -53,8 +53,8 @@ data StmtF a =  StPackage Name
               | StField a Name [a] [a]
               | StLambda [Argument] [a]
               | StPair Value Value (Maybe Type)
-              | StForC [a] Value
-              | StForV Name Value
+              | StFor [a] [a]
+              | StGenerator Name a
               | StLiteral String
               | StIdent Name
               deriving (Show, Functor)
@@ -106,11 +106,11 @@ scalaLambda as = Fix . StLambda as
 scalaPair :: Value -> Value -> Maybe Type -> Stmt
 scalaPair v v' = Fix . StPair v v'
 
-scalaForC :: [Stmt] -> Value -> Stmt
-scalaForC ss = Fix . StForC ss
+scalaFor :: [Stmt] -> [Stmt] -> Stmt
+scalaFor ss = Fix . StFor ss
 
-scalaForV :: Name -> Value -> Stmt
-scalaForV n = Fix . StForV n
+scalaGenerator :: Name -> Stmt -> Stmt
+scalaGenerator n = Fix . StGenerator n
 
 scalaLiteral :: Show a => a -> Stmt
 scalaLiteral = Fix . StLiteral . show
