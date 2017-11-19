@@ -3,7 +3,7 @@ module Humbug.Compile
 ) where
 
 import Data.Char(toUpper)
-import Data.List(elemIndices, intersperse)
+import Data.List(elemIndices, foldr1, intersperse)
 import qualified Data.Map.Strict as Map
 import Humbug.Scala
 import Humbug.Thrift
@@ -13,21 +13,31 @@ compile (Document hs ds) = let
   pkg = buildPackage hs
   imps = buildImports hs
   defs = map compile' ds
-  in foldr Map.union Map.empty defs
+  pobj = compile'' ds pkg
+  in Map.map (prelude pkg) $ foldr Map.union Map.empty (pobj : defs)
+  where
+    prelude pkg stmts = scalaPackage pkg : stmts
 
 compile' :: Definition -> Map.Map FilePath [Stmt]
-compile' (Const ft ident cv) = Map.empty
 compile' (Typedef ft ident) = Map.singleton ident (buildTypedef ident ft)
 compile' (Enum ident vs) = Map.singleton ident (buildEnum ident vs)
 compile' (Struct ident fs) = Map.singleton ident (buildStruct ident fs)
 compile' (Union ident fs) = Map.singleton ident (buildUnion ident fs)
 compile' (Exception ident fs) = Map.empty
 compile' (Service ident pident fns) = Map.empty
+compile' _ = Map.empty
 
-buildPackage :: [Header] -> Maybe Stmt
-buildPackage [] = Nothing
-buildPackage (Namespace NsJava ident : _) = Just $ scalaPackage ident
-buildPackage (Namespace NsStar ident : _) = Just $ scalaPackage ident
+compile'' :: [Definition] -> String -> Map.Map FilePath [Stmt]
+compile'' [] _ = Map.empty
+compile'' (Const ct cn cv : ds) pkg = let
+  const = scalaVal cn False False (Just $ buildType ct) [buildValue' cv]
+  in Map.singleton "package" [const] `Map.union` compile'' ds pkg
+compile'' (_ : ds) pkg = compile'' ds pkg
+
+buildPackage :: [Header] -> String
+buildPackage [] = "humbug.sample"
+buildPackage (Namespace NsJava ident : _) = ident
+buildPackage (Namespace NsStar ident : _) = ident
 buildPackage (_ : hs) = buildPackage hs
 
 buildImports :: [Header] -> [Stmt]
@@ -169,6 +179,21 @@ buildValue (CvMap cs) = let
   cvs = map buildValue $ snd cs'
   cs'' = map (\(k,v) -> k ++ "->" ++ v) $ zip cks cvs
   in "List(" ++ (concat $ intersperse "," cs'') ++ ")"
+
+buildValue' :: ConstValue -> Stmt
+buildValue' (CvInt i) = scalaLiteral i
+buildValue' (CvDouble d) = scalaLiteral d
+buildValue' (CvLiteral lit) = scalaLiteral $ drop 1 $ init lit
+buildValue' (CvNamed ident) = scalaIdent ident
+buildValue' (CvList cs) = let
+  cs' = map buildValue' cs
+  in scalaNew "List" True cs' []
+buildValue' (CvMap cs) = let
+  cs' = unzip cs
+  cks = map buildValue' $ fst cs'
+  cvs = map buildValue' $ snd cs'
+  cs'' = map (\(k,v) -> scalaPair k v) $ zip cks cvs
+  in scalaNew "Map" True cs'' []
 
 buildField :: Field -> Argument
 buildField (Field _ fr ft ident fv) = let
