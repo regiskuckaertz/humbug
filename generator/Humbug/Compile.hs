@@ -40,7 +40,7 @@ buildTypedef ident ft = let
   ft' = buildType ft
   cv = scalaCaseClass ident [("value", Just ft', Nothing)] ["AnyVal", "TTypeDef"]
   ex = "TTypeDefCodec[" ++ ident ++ "," ++ (buildType ft) ++ "]"
-  menc = scalaMethod "encode" True [] Nothing [scalaField "_" "value" [] []]
+  menc = scalaMethod "encode" True [] Nothing [scalaField (scalaIdent "_") "value" [] []]
   mdec = scalaMethod "decode" True [] Nothing [scalaNew ident False [scalaIdent "_"] []]
   o = scalaCompanionObject ident (Just ex) [menc, mdec]
   in [cv, o]
@@ -119,7 +119,9 @@ buildUnion ident fs = let
     buildClassName (c : cs) = (toUpper c : cs)
     buildEncode (fid, Field _ _ _ fn _) = scalaCase ((buildClassName fn) ++ "(x)") Nothing [scalaNew "HMap[TFieldCodec]" True [] []]
     --- TODO
-    buildDecode (fid, f) = scalaField "m" "get" [(show fid, Nothing, Nothing)] []
+    buildDecode (fid, (Field _ _ _ ident _)) = let
+      f = scalaField (scalaIdent "m") "get" [scalaLiteral fid] []
+      in scalaField f "map" [scalaNew ident True [scalaIdent "_"] []] []
 
 buildType :: FieldType -> String
 buildType (FtBase BtBool) = "Boolean"

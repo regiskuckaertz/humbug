@@ -51,7 +51,7 @@ print' (StNew n caseclass vs stmts) = ((showNew caseclass) ++ n ++ "(" ++ (conca
     showNew True = ""
     showNew False = "new "
 
-print' (StField n n' as stmts) = (n ++ "." ++ n' ++ (showArgs as)) : (showStatements "" $ concat stmts)
+print' (StField n n' as stmts) = ((concat n) ++ "." ++ n' ++ (concat $ concat as)) : (showStatements "" $ concat stmts)
 
 print' (StLambda ps stmts) = (showArgs ps) : (showStatements " => " $ concat stmts)
 

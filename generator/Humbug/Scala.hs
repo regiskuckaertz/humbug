@@ -50,7 +50,7 @@ data StmtF a =  StPackage Name
               | StTrait Name [a]
               | StVal Name Bool Bool (Maybe Type) [a]
               | StNew Name Bool [a] [a]
-              | StField Name Name [Argument] [a]
+              | StField a Name [a] [a]
               | StLambda [Argument] [a]
               | StPair Value Value (Maybe Type)
               | StForC [a] Value
@@ -97,7 +97,7 @@ scalaVal n o i t = Fix . StVal n o i t
 scalaNew :: Name -> Bool -> [Stmt] -> [Stmt] -> Stmt
 scalaNew n o as = Fix . StNew n o as
 
-scalaField :: Name -> Name -> [Argument] -> [Stmt] -> Stmt
+scalaField :: Stmt -> Name -> [Stmt] -> [Stmt] -> Stmt
 scalaField n n' as = Fix . StField n n' as
 
 scalaLambda :: [Argument] -> [Stmt] -> Stmt
