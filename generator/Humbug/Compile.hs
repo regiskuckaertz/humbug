@@ -102,16 +102,22 @@ buildStruct ident fs = let
       mdec = scalaMethod "decode" True [] Nothing [ldec]
       p = "TStructCodec[" ++ ident ++ "]"
       in scalaCompanionObject ident (Just p) (wits ++ imps ++ [defs, menc, mdec])
-    buildDefaultValue (Field _ (Just Optional) ft _ cv, wid) vs = let
-      mv = maybe "None" (\v -> "Some(" ++ (buildValue v) ++ ")") cv
-      v = scalaPair ("w" ++ (show wid) ++ ".value") mv Nothing
+    buildDefaultValue (Field _ (Just Optional) ft _ cv, wid) vs = 
+      let
+        mv = maybe (scalaIdent "None") (\v -> scalaNew "Some" True [buildValue' v] []) cv
+        v = scalaPair 
+          (scalaField (scalaIdent ("w" ++ show wid)) "value" [] [])
+          mv
       in (v : vs)
-    buildDefaultValue (Field _ _ ft _ (Just cv), wid) vs = let
-      v = scalaPair ("w" ++ (show wid) ++ ".value") (buildValue cv) Nothing
+    buildDefaultValue (Field _ _ ft _ (Just cv), wid) vs = 
+      let
+        v = scalaPair 
+          (scalaField (scalaIdent ("w" ++ show wid)) "value" [] []) 
+          (buildValue' cv)
       in (v : vs)
     buildDefaultValue _ vs = vs
     buildWitnessField (Field _ _ _ ident _, wid) =
-      scalaPair ("w" ++ (show wid) ++ ".value") ("x." ++ ident) Nothing
+      scalaPair (scalaField (scalaIdent $ "w" ++ show wid) "value" [] []) (scalaField (scalaIdent "x") ident [] [])
     buildAssignment (Field _ _ _ ident _, wid) = let
       w = scalaField (scalaIdent ("w" ++ show wid)) "value" [] []
       f = scalaField (scalaIdent "m") "get" [w] []
@@ -139,7 +145,7 @@ buildUnion ident fs = let
       scalaCaseClass (buildClassName fn) [(fn, Just $ buildType ft, Nothing)] [ident]
     buildClassName (c : cs) = (toUpper c : cs)
     buildEncode (Field _ _ _ fn _, wid) = let
-      n = scalaNew "HMap[TFieldCodec]" True [scalaPair ("w" ++ show wid ++ ".value") "x" Nothing] []
+      n = scalaNew "HMap[TFieldCodec]" True [scalaPair (scalaField (scalaIdent $ "w" ++ show wid) "value" [] []) (scalaIdent "x")] []
       in scalaCase ((buildClassName fn) ++ "(x)") Nothing [n]
     buildDecode (Field _ _ _ ident _, wid) = let
       f = scalaField (scalaIdent "m") "get" [scalaField (scalaIdent $ "w" ++ show wid) "value" [] []] []
