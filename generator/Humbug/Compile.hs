@@ -72,10 +72,10 @@ buildStruct ident fs = let
     buildCompanionObject = let
       vs = iterate (+1) 1
       fids = fst $ foldr buildFieldIds ([], -1) fs
-      zfids = zip fids $ vs
-      zfs = zip fs $ vs
+      zfids = zip fids vs
+      zfs = zip fs vs
       wits = map buildWitness zfids
-      imps = map buildFieldCodec zfids
+      imps = map buildFieldCodec zfs
       maps = foldr buildDefaultValue [] zfs
       hmap = scalaNew "HMap[TFieldCodec]" True maps []
       defs = scalaVal "defaults" True False Nothing [hmap]
@@ -191,9 +191,13 @@ buildWitness (fid, var) = let
   wit = scalaNew "Witness" True [scalaLiteral fid] []
   in scalaVal ("w" ++ show var) False False Nothing [wit]
 
-buildFieldCodec :: (Int, Int) -> Stmt
-buildFieldCodec (fid, var) = let
-  fn = "TFieldCodec[w" ++ (show var) ++ "," ++ "Nothing" ++ "]"
+buildFieldCodec :: (Field, Int) -> Stmt
+buildFieldCodec (Field _ fr ft _ _, var) = let
+  ft' = buildType ft
+  ft'' = case fr of
+    Just Optional -> "Option[" ++ ft' ++ "]"
+    _ -> ft'
+  fn = "TFieldCodec[w" ++ (show var) ++ "," ++ ft'' ++ "]"
   fc = scalaNew fn False [] []
   in scalaVal ("r" ++ show var) False True Nothing [fc]
 
