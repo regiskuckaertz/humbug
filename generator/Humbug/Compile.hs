@@ -158,10 +158,15 @@ buildValue (CvMap cs) = let
   in "List(" ++ (concat $ intersperse "," cs'') ++ ")"
 
 buildField :: Field -> Argument
-buildField (Field _ fr ft ident fv) = case fr of
-  (Just Optional) -> let fv' = maybe "None" (\fv -> "Some(" ++ (buildValue fv) ++ ")") fv
+buildField (Field _ fr ft ident fv) = let
+  ft' = buildType ft
+  in case fr of
+    (Just Optional) -> let 
+      fv' = maybe "None" (\fv -> "Some(" ++ (buildValue fv) ++ ")") fv
                      in (ident, Just ("Option[" ++ buildType ft ++ "]"), Just fv')
-  _ -> (ident, Just (buildType ft), Nothing)
+    _ -> let
+      fv' = maybe Nothing (\fv -> Just $ buildValue fv) fv
+      in (ident, Just (buildType ft), fv')
 
 buildFieldIds :: Field -> ([Int], Int) -> ([Int], Int)
 buildFieldIds (Field (Just fid) _ _ _ _) (fids, fid') = (fid : fids, fid')
