@@ -38,7 +38,7 @@ buildImports (_ : hs) = buildImports hs
 buildTypedef :: Identifier -> FieldType -> [Stmt]
 buildTypedef ident ft = let
   ft' = buildType ft
-  cv = scalaCaseClass ident [("value", Just ft', Nothing)] (Just "AnyVal")
+  cv = scalaCaseClass ident [("value", Just ft', Nothing)] ["AnyVal", "TTypeDef"]
   ex = "TTypeDefCodec[" ++ ident ++ "," ++ (buildType ft) ++ "]"
   menc = scalaMethod "encode" True [] Nothing [scalaField "_" "value" [] []]
   mdec = scalaMethod "decode" True [] Nothing [scalaNew ident False [scalaIdent "_"] []]
@@ -65,7 +65,7 @@ buildEnum ident fs = [buildSealedTrait, buildCompanionObject]
 
 buildStruct :: Identifier -> [Field] -> [Stmt]
 buildStruct ident fs = let
-  cc = scalaCaseClass ident (map buildField fs) (Just "TStruct")
+  cc = scalaCaseClass ident (map buildField fs) ["TStruct"]
   co = buildCompanionObject
   in [cc, co]
   where
@@ -114,7 +114,7 @@ buildUnion ident fs = let
   where
     buildCaseClasses = map (\f ->
       case f of 
-        (Field fid _ ft fn _) -> scalaCaseClass (buildClassName fn) [(fn, Just $ buildType ft, Nothing)] (Just ident)
+        (Field fid _ ft fn _) -> scalaCaseClass (buildClassName fn) [(fn, Just $ buildType ft, Nothing)] [ident]
       ) fs
     buildClassName (c : cs) = (toUpper c : cs)
     buildEncode (fid, Field _ _ _ fn _) = scalaCase ((buildClassName fn) ++ "(x)") Nothing [scalaNew "HMap[TFieldCodec]" True [] []]

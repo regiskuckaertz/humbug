@@ -42,7 +42,7 @@ data StmtF a =  StPackage Name
               | StImport Name [(Name, Maybe Name)]
               | StPackageObject Name [a]
               | StSealedTrait Name (Maybe Name) [a]
-              | StCaseClass Name [Argument] (Maybe Name)
+              | StCaseClass Name [Argument] [Name]
               | StCaseObject Name [Argument] Name
               | StCompanionObject Name (Maybe Name) [a]
               | StMethod Name Bool [Argument] (Maybe Type) [a]
@@ -73,7 +73,7 @@ scalaPackageObject n = Fix . StPackageObject n
 scalaSealedTrait :: Name -> Maybe Name -> [Stmt] -> Stmt
 scalaSealedTrait n as = Fix . StSealedTrait n as
 
-scalaCaseClass :: Name -> [Argument] -> Maybe Name -> Stmt
+scalaCaseClass :: Name -> [Argument] -> [Name] -> Stmt
 scalaCaseClass n as = Fix . StCaseClass n as
 
 scalaCaseObject :: Name -> [Argument] -> Name -> Stmt

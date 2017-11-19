@@ -25,7 +25,7 @@ print' (StPackageObject n stmts) = ("package object " ++ n) : (showStatements " 
 
 print' (StSealedTrait n p ccs) = ("sealed trait " ++ n ++ showAncestor p) : (concat ccs)
 
-print' (StCaseClass n as p) = ["case class " ++ n ++ (showArgs as) ++ (showAncestor p)]
+print' (StCaseClass n as ps) = ["case class " ++ n ++ (showArgs as) ++ (showAncestors ps)]
 
 print' (StCaseObject n as p) = ["case object " ++ n ++ (showArgs as) ++ (showAncestor (Just p))]
 
@@ -84,6 +84,10 @@ showArg (n, Just t, Just v) = n ++ " : " ++ t ++ " = " ++ v
 
 showType :: Maybe Type -> String
 showType = maybe "" (": " ++)
+
+showAncestors :: [Name] -> String
+showAncestors [] = ""
+showAncestors ps = " extends " ++ (concat $ intersperse " with " ps)
 
 showAncestor :: Maybe Name -> String
 showAncestor = maybe "" (" extends " ++)
