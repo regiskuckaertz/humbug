@@ -48,7 +48,7 @@ buildImports (_ : hs) = buildImports hs
 buildTypedef :: Identifier -> FieldType -> [Stmt]
 buildTypedef ident ft = let
   ft' = buildType ft
-  vc = scalaCaseClass ident [("value", Just ft', Nothing)] ["AnyVal", "TTypeDef"]
+  vc = scalaCaseClass ident [scalaArgument "value" (Just ft') Nothing] ["AnyVal", "TTypeDef"]
   ex = "TTypeDefCodec[" ++ ident ++ "," ++ (buildType ft) ++ "]"
   menc = scalaMethod "encode" True [] Nothing [scalaField (scalaIdent "_") "value" [] []]
   mdec = scalaMethod "decode" True [] Nothing [scalaNew ident False [scalaIdent "_"] []]
@@ -92,12 +92,12 @@ buildStruct ident fs = let
       --- TODO
       maps' = map buildWitnessField zfs
       hmap' = scalaNew "HMap[TFieldCodec]" True maps' []
-      lenc = scalaLambda [("x", Nothing, Nothing)] [hmap']
+      lenc = scalaLambda [scalaArgument "x" Nothing Nothing] [hmap']
       as = map buildAssignment zfs
       fns = map (\(Field _ _ _ ident _) -> ident) fs
       c = scalaNew ident True (map scalaIdent fns) []
       for = scalaFor as [c]
-      ldec = scalaLambda [("m", Nothing, Nothing)] [for]
+      ldec = scalaLambda [scalaArgument "m" Nothing Nothing] [for]
       menc = scalaMethod "encode" True [] Nothing [lenc]
       mdec = scalaMethod "decode" True [] Nothing [ldec]
       p = "TStructCodec[" ++ ident ++ "]"
@@ -136,13 +136,13 @@ buildUnion ident fs = let
   wits = map buildWitness zfids
   imps = map buildFieldCodec zfs
   menc = scalaMethod "encode" True [] Nothing $ map buildEncode zfs
-  ldec = scalaLambda [("m", Nothing, Nothing)] $ [foldr1 (\fa fb -> scalaField fa "orElse" [fb] []) $ map buildDecode zfs]
+  ldec = scalaLambda [scalaArgument "m" Nothing Nothing] $ [foldr1 (\fa fb -> scalaField fa "orElse" [fb] []) $ map buildDecode zfs]
   mdec = scalaMethod "decode" True [] Nothing [ldec]
   co = scalaCompanionObject ident (Just $ "TUnionCodec[" ++ ident ++ "]") (wits ++ imps ++ [menc, mdec])
   in (st : ccs) ++ [co]
   where
     buildCaseClass (Field fid _ ft fn _) = 
-      scalaCaseClass (buildClassName fn) [(fn, Just $ buildType ft, Nothing)] [ident]
+      scalaCaseClass (buildClassName fn) [scalaArgument fn (Just $ buildType ft) Nothing] [ident]
     buildClassName (c : cs) = (toUpper c : cs)
     buildEncode (Field _ _ _ fn _, wid) = let
       n = scalaNew "HMap[TFieldCodec]" True [scalaPair (scalaField (scalaIdent $ "w" ++ show wid) "value" [] []) (scalaIdent "x")] []
@@ -201,16 +201,16 @@ buildValue' (CvMap cs) = let
   cs'' = map (\(k,v) -> scalaPair k v) $ zip cks cvs
   in scalaNew "Map" True cs'' []
 
-buildField :: Field -> Argument
+buildField :: Field -> Stmt
 buildField (Field _ fr ft ident fv) = let
   ft' = buildType ft
   in case fr of
     (Just Optional) -> let 
-      fv' = maybe "None" (\fv -> "Some(" ++ (buildValue fv) ++ ")") fv
-                     in (ident, Just ("Option[" ++ buildType ft ++ "]"), Just fv')
+      fv' = maybe (scalaIdent "None") (\fv -> scalaSome $ buildValue' fv) fv
+      in scalaArgument ident (Just ("Option[" ++ buildType ft ++ "]")) (Just fv')
     _ -> let
-      fv' = maybe Nothing (\fv -> Just $ buildValue fv) fv
-      in (ident, Just (buildType ft), fv')
+      fv' = maybe Nothing (\fv -> Just $ buildValue' fv) fv
+      in scalaArgument ident (Just $ buildType ft) fv'
 
 buildFieldIds :: Field -> ([Int], Int) -> ([Int], Int)
 buildFieldIds (Field (Just fid) _ _ _ _) (fids, fid') = (fid : fids, fid')

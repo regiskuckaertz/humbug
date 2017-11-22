@@ -6,7 +6,6 @@ module Humbug.Scala
 , Name
 , Type
 , Value
-, Argument
 , scalaPackage
 , scalaImport
 , scalaPackageObject
@@ -22,10 +21,12 @@ module Humbug.Scala
 , scalaField
 , scalaLambda
 , scalaPair
+, scalaArgument
 , scalaFor
 , scalaGenerator
 , scalaLiteral
 , scalaIdent
+, scalaSome
 ) where
 
 import Data.Fix
@@ -36,27 +37,27 @@ type Type = String
 
 type Value = String
 
-type Argument = (Name, Maybe Type, Maybe Value)
-
 data StmtF a =  StPackage Name
               | StImport Name [(Name, Maybe Name)]
               | StPackageObject Name [a]
               | StSealedTrait Name (Maybe Name) [a]
-              | StCaseClass Name [Argument] [Name]
-              | StCaseObject Name [Argument] Name
+              | StCaseClass Name [a] [Name]
+              | StCaseObject Name [a] Name
               | StCompanionObject Name (Maybe Name) [a]
-              | StMethod Name Bool [Argument] (Maybe Type) [a]
+              | StMethod Name Bool [a] (Maybe Type) [a]
               | StCase Value (Maybe Type) [a]
               | StTrait Name [a]
               | StVal Name Bool Bool (Maybe Type) [a]
               | StNew Name Bool [a] [a]
               | StField a Name [a] [a]
-              | StLambda [Argument] [a]
+              | StLambda [a] [a]
               | StPair a a
+              | StArgument Name (Maybe Type) (Maybe a)
               | StFor [a] [a]
               | StGenerator Name a
               | StLiteral String
               | StIdent Name
+              | StSome a
               deriving (Show, Functor)
               
 type Stmt = Fix StmtF
@@ -73,16 +74,16 @@ scalaPackageObject n = Fix . StPackageObject n
 scalaSealedTrait :: Name -> Maybe Name -> [Stmt] -> Stmt
 scalaSealedTrait n as = Fix . StSealedTrait n as
 
-scalaCaseClass :: Name -> [Argument] -> [Name] -> Stmt
+scalaCaseClass :: Name -> [Stmt] -> [Name] -> Stmt
 scalaCaseClass n as = Fix . StCaseClass n as
 
-scalaCaseObject :: Name -> [Argument] -> Name -> Stmt
+scalaCaseObject :: Name -> [Stmt] -> Name -> Stmt
 scalaCaseObject n as = Fix . StCaseObject n as
 
 scalaCompanionObject :: Name -> Maybe Name -> [Stmt] -> Stmt
 scalaCompanionObject n n' = Fix . StCompanionObject n n'
 
-scalaMethod :: Name -> Bool -> [Argument] -> Maybe Type -> [Stmt] -> Stmt
+scalaMethod :: Name -> Bool -> [Stmt] -> Maybe Type -> [Stmt] -> Stmt
 scalaMethod n o as t = Fix . StMethod n o as t
 
 scalaCase :: Value -> (Maybe Type) -> [Stmt] -> Stmt
@@ -100,11 +101,14 @@ scalaNew n o as = Fix . StNew n o as
 scalaField :: Stmt -> Name -> [Stmt] -> [Stmt] -> Stmt
 scalaField n n' as = Fix . StField n n' as
 
-scalaLambda :: [Argument] -> [Stmt] -> Stmt
+scalaLambda :: [Stmt] -> [Stmt] -> Stmt
 scalaLambda as = Fix . StLambda as
 
 scalaPair :: Stmt -> Stmt -> Stmt
 scalaPair v = Fix . StPair v
+
+scalaArgument :: Name -> Maybe Type -> Maybe Stmt -> Stmt
+scalaArgument n t = Fix . StArgument n t
 
 scalaFor :: [Stmt] -> [Stmt] -> Stmt
 scalaFor ss = Fix . StFor ss
@@ -117,3 +121,6 @@ scalaLiteral = Fix . StLiteral . show
 
 scalaIdent :: Name -> Stmt
 scalaIdent = Fix . StIdent
+
+scalaSome :: Stmt -> Stmt
+scalaSome = Fix . StSome

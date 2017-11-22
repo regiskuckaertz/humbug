@@ -50,11 +50,17 @@ print' (StNew n caseclass vs stmts) = showNew ++ n ++ "(" ++ (concat $ intersper
   where
     showNew = if caseclass then "" else "new "
 
-print' (StField n n' as stmts) = n ++ "." ++ n' ++ showArguments as ++ (showStatements stmts)
+print' (StField n n' as stmts) = n ++ "." ++ n' ++ showArgs as ++ (showStatements stmts)
 
 print' (StLambda ps stmts) = showArgs ps ++ " => " ++ showStatements stmts
 
 print' (StPair k v) = k ++ " -> " ++ v
+
+print' (StArgument n t v) =
+  let
+    n' = maybe n (\t -> n ++ ": " ++ t) t
+  in
+    maybe n' (\v -> n' ++ "= " ++ v) v
 
 print' (StFor stmts ys) = "for " ++ showStatements stmts ++ " yield " ++ showStatements ys
 
@@ -64,24 +70,16 @@ print' (StLiteral v) = v
 
 print' (StIdent i) = i
 
+print' (StSome x) = "Some(" ++ x ++ ")"
+
 showStatements :: [String] -> String
 showStatements [] = []
 showStatements [stmt] = stmt
 showStatements stmts = "{\n" ++ (concat $ intersperse "\n" stmts) ++ "\n}"
 
-showArguments :: [String] -> String
-showArguments [] = []
-showArguments as = "(" ++ concat as ++ ")"
-
-showArgs :: [Argument] -> String
+showArgs :: [String] -> String
 showArgs [] = ""
-showArgs as = ("(" ++) $ (++ ")") $ concat $ intersperse "," $ map showArg as
-
-showArg :: Argument -> String
-showArg (n, Nothing, Nothing) = n
-showArg (n, Just t, Nothing) = n ++ " : " ++ t
-showArg (n, Nothing, Just v) = n ++ " = " ++ v
-showArg (n, Just t, Just v) = n ++ " : " ++ t ++ " = " ++ v
+showArgs as = ("(" ++) $ (++ ")") $ concat $ intersperse "," as
 
 showType :: Maybe Type -> String
 showType = maybe "" (": " ++)
