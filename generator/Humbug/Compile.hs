@@ -4,6 +4,7 @@ module Humbug.Compile
 
 import Data.Char(toUpper)
 import Data.List(elemIndices, foldr1, intersperse)
+import Data.Monoid(mconcat)
 import qualified Data.Map.Strict as Map
 import Humbug.Scala
 import Humbug.Thrift
@@ -12,27 +13,33 @@ compile :: Document -> Map.Map FilePath [Stmt]
 compile (Document hs ds) = let 
   pkg = buildPackage hs
   imps = buildImports hs
-  defs = map compile' ds
-  pobj = compile'' ds pkg
-  in Map.map (prelude pkg) $ foldr Map.union Map.empty (pobj : defs)
+  defs = foldMap compile' ds
+  cnts = foldr (compile'' pkg) [] ds
+  pobj = buildPackageObject pkg cnts
+  in 
+    mappend (prelude pkg <$> defs) (prelude' pkg <$> pobj)
   where
     prelude pkg stmts = scalaPackage pkg : stmts
+    prelude' pkg stmts = scalaPackage pkg' : stmts
+      where
+        pkg' = case (elemIndices '.' pkg) of
+          [] -> pkg
+          is -> take (last is) pkg
 
 compile' :: Definition -> Map.Map FilePath [Stmt]
 compile' (Typedef ft ident) = Map.singleton ident (buildTypedef ident ft)
 compile' (Enum ident vs) = Map.singleton ident (buildEnum ident vs)
 compile' (Struct ident fs) = Map.singleton ident (buildStruct ident fs)
 compile' (Union ident fs) = Map.singleton ident (buildUnion ident fs)
-compile' (Exception ident fs) = Map.empty
-compile' (Service ident pident fns) = Map.empty
-compile' _ = Map.empty
+compile' (Exception ident fs) = mempty
+compile' (Service ident pident fns) = mempty
+compile' _ = mempty
 
-compile'' :: [Definition] -> String -> Map.Map FilePath [Stmt]
-compile'' [] _ = Map.empty
-compile'' (Const ct cn cv : ds) pkg = let
-  const = scalaVal cn False False (Just $ buildType ct) [buildValue' cv]
-  in Map.singleton "package" [const] `Map.union` compile'' ds pkg
-compile'' (_ : ds) pkg = compile'' ds pkg
+compile'' :: String -> Definition -> [Stmt] -> [Stmt]
+compile'' pkg (Const ct cn cv) consts = let
+  const = scalaVal cn False False (Just $ buildType ct) [buildValue cv]
+  in const : consts
+compile'' pkg _  consts = consts
 
 buildPackage :: [Header] -> String
 buildPackage [] = "humbug.sample"
@@ -40,6 +47,12 @@ buildPackage (Namespace NsJava ident : _) = ident
 buildPackage (Namespace NsStar ident : _) = ident
 buildPackage (_ : hs) = buildPackage hs
 
+buildPackageObject :: String -> [Stmt] -> Map.Map FilePath [Stmt]
+buildPackageObject pkg cnts = case cnts of
+  [] -> mempty
+  _ -> Map.singleton "package" [(scalaPackageObject (buildPackageName pkg) cnts)]
+
+--- TODO
 buildImports :: [Header] -> [Stmt]
 buildImports [] = []
 buildImports (Include lit : hs) = scalaImport lit [] : buildImports hs
@@ -50,8 +63,9 @@ buildTypedef ident ft = let
   ft' = buildType ft
   vc = scalaCaseClass ident [scalaArgument "value" (Just ft') Nothing] ["AnyVal", "TTypeDef"]
   ex = "TTypeDefCodec[" ++ ident ++ "," ++ (buildType ft) ++ "]"
-  menc = scalaMethod "encode" True [] Nothing [scalaField (scalaIdent "_") "value" [] []]
-  mdec = scalaMethod "decode" True [] Nothing [scalaNew ident False [scalaIdent "_"] []]
+  u = scalaIdent "_"
+  menc = scalaMethod "encode" True [] Nothing [scalaField u "value" [] []]
+  mdec = scalaMethod "decode" True [] Nothing [scalaNew ident False [u] []]
   o = scalaCompanionObject ident (Just ex) [menc, mdec]
   in [vc, o]
 
@@ -86,10 +100,9 @@ buildStruct ident fs = let
       zfs = zip fs vs
       wits = map buildWitness zfids
       imps = map buildFieldCodec zfs
-      maps = foldr buildDefaultValue [] zfs
+      maps = foldMap buildDefaultValue zfs
       hmap = scalaNew "HMap[TFieldCodec]" True maps []
       defs = scalaVal "defaults" True False Nothing [hmap]
-      --- TODO
       maps' = map buildWitnessField zfs
       hmap' = scalaNew "HMap[TFieldCodec]" True maps' []
       lenc = scalaLambda [scalaArgument "x" Nothing Nothing] [hmap']
@@ -102,20 +115,20 @@ buildStruct ident fs = let
       mdec = scalaMethod "decode" True [] Nothing [ldec]
       p = "TStructCodec[" ++ ident ++ "]"
       in scalaCompanionObject ident (Just p) (wits ++ imps ++ [defs, menc, mdec])
-    buildDefaultValue (Field _ (Just Optional) ft _ cv, wid) vs = 
+    buildDefaultValue (Field _ (Just Optional) ft _ cv, wid) = 
       let
-        mv = maybe (scalaIdent "None") (\v -> scalaNew "Some" True [buildValue' v] []) cv
+        mv = maybe (scalaIdent "None") (\v -> scalaNew "Some" True [buildValue v] []) cv
         v = scalaPair 
           (scalaField (scalaIdent ("w" ++ show wid)) "value" [] [])
           mv
-      in (v : vs)
-    buildDefaultValue (Field _ _ ft _ (Just cv), wid) vs = 
+      in [v]
+    buildDefaultValue (Field _ _ ft _ (Just cv), wid) = 
       let
         v = scalaPair 
           (scalaField (scalaIdent ("w" ++ show wid)) "value" [] []) 
-          (buildValue' cv)
-      in (v : vs)
-    buildDefaultValue _ vs = vs
+          (buildValue cv)
+      in [v]
+    buildDefaultValue _ = []
     buildWitnessField (Field _ _ _ ident _, wid) =
       scalaPair (scalaField (scalaIdent $ "w" ++ show wid) "value" [] []) (scalaField (scalaIdent "x") ident [] [])
     buildAssignment (Field _ _ _ ident _, wid) = let
@@ -169,35 +182,18 @@ buildType (FtNamed ident) = case (elemIndices '.' ident) of
   [] -> ident
   is -> drop (last is) ident
 
-buildValue :: ConstValue -> String
-buildValue (CvInt i) = show i
-buildValue (CvDouble d) = show d
-buildValue (CvLiteral lit) = case lit of
-  '\'' : rs -> '"' : (init rs) ++ ['"']
-  _ -> lit
-buildValue (CvNamed ident) = ident
+buildValue :: ConstValue -> Stmt
+buildValue (CvInt i) = scalaLiteral i
+buildValue (CvDouble d) = scalaLiteral d
+buildValue (CvLiteral lit) = scalaLiteral $ drop 1 $ init lit
+buildValue (CvNamed ident) = scalaIdent ident
 buildValue (CvList cs) = let
   cs' = map buildValue cs
-  in "List(" ++ (concat $ intersperse "," cs') ++ ")"
+  in scalaNew "List" True cs' []
 buildValue (CvMap cs) = let
   cs' = unzip cs
   cks = map buildValue $ fst cs'
   cvs = map buildValue $ snd cs'
-  cs'' = map (\(k,v) -> k ++ "->" ++ v) $ zip cks cvs
-  in "List(" ++ (concat $ intersperse "," cs'') ++ ")"
-
-buildValue' :: ConstValue -> Stmt
-buildValue' (CvInt i) = scalaLiteral i
-buildValue' (CvDouble d) = scalaLiteral d
-buildValue' (CvLiteral lit) = scalaLiteral $ drop 1 $ init lit
-buildValue' (CvNamed ident) = scalaIdent ident
-buildValue' (CvList cs) = let
-  cs' = map buildValue' cs
-  in scalaNew "List" True cs' []
-buildValue' (CvMap cs) = let
-  cs' = unzip cs
-  cks = map buildValue' $ fst cs'
-  cvs = map buildValue' $ snd cs'
   cs'' = map (\(k,v) -> scalaPair k v) $ zip cks cvs
   in scalaNew "Map" True cs'' []
 
@@ -206,10 +202,10 @@ buildField (Field _ fr ft ident fv) = let
   ft' = buildType ft
   in case fr of
     (Just Optional) -> let 
-      fv' = maybe (scalaIdent "None") (\fv -> scalaSome $ buildValue' fv) fv
+      fv' = maybe (scalaIdent "None") (\fv -> scalaSome $ buildValue fv) fv
       in scalaArgument ident (Just ("Option[" ++ buildType ft ++ "]")) (Just fv')
     _ -> let
-      fv' = maybe Nothing (\fv -> Just $ buildValue' fv) fv
+      fv' = maybe Nothing (\fv -> Just $ buildValue fv) fv
       in scalaArgument ident (Just $ buildType ft) fv'
 
 buildFieldIds :: Field -> ([Int], Int) -> ([Int], Int)
@@ -234,8 +230,11 @@ buildFieldCodec (Field _ fr ft _ _, var) = let
 buildException :: Identifier -> [Field] -> Map.Map FilePath [Stmt]
 buildException ident fs = Map.empty
 
-buildConst :: FieldType -> Identifier -> ConstValue -> Map.Map FilePath [Stmt]
-buildConst ft ident cv = let
-  cnst = scalaVal ident False False (Just $ buildType ft) []
-  pkg = scalaPackageObject "tmp" [cnst]
-  in Map.singleton "package" [pkg]
+buildConst :: Definition -> [Stmt] -> [Stmt]
+buildConst (Const ft ident cv) ss = (scalaVal ident False False (Just $ buildType ft) []) : ss
+buildConst _ ss = ss
+
+buildPackageName :: String -> String
+buildPackageName pkg = case (elemIndices '.' pkg) of
+  [] -> pkg
+  is -> drop ((last is) + 1) pkg
