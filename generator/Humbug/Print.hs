@@ -21,7 +21,7 @@ print' (StImport n ns) = "import " ++ n ++ "." ++ showImports ns
     showImport (n, Nothing) res = n : res
     showImport (n, Just a) res = (n ++ "=>" ++ a) : res
 
-print' (StPackageObject n stmts) = "package object " ++ n ++ showStatements stmts
+print' (StPackageObject n stmts) = "package object " ++ n ++ showStatements stmts True
 
 print' (StSealedTrait n p ccs) = "sealed trait " ++ n ++ showAncestor p ++ "\n" ++ (concat $ intersperse "\n" ccs)
 
@@ -29,30 +29,30 @@ print' (StCaseClass n as ps) = "case class " ++ n ++ showArgs as ++ showAncestor
 
 print' (StCaseObject n as p) = "case object " ++ n ++ showArgs as ++ showAncestor (Just p)
 
-print' (StCompanionObject n p stmts) = "object " ++ n ++ showAncestor p ++ showStatements stmts
+print' (StCompanionObject n p stmts) = "object " ++ n ++ showAncestor p ++ showStatements stmts True
 
-print' (StMethod n override as rt stmts) = showOverride ++ "def " ++ n ++ showArgs as ++ showType rt ++ " = " ++ showStatements stmts
+print' (StMethod n override as rt stmts) = showOverride ++ "def " ++ n ++ showArgs as ++ showType rt ++ " = " ++ showStatements stmts False
   where
     showOverride = if override then "override " else ""
     
-print' (StCase v vt stmts) = "case " ++ v ++ showType vt ++ " => " ++ showStatements stmts
+print' (StCase v vt stmts) = "case " ++ v ++ showType vt ++ " => " ++ showStatements stmts False
 
-print' (StTrait n stmts) = "trait " ++ n ++ showStatements stmts
+print' (StTrait n stmts) = "trait " ++ n ++ showStatements stmts False
 
-print' (StVal n override implicit vt stmts) = showDecorators override implicit ++ "val " ++ showName n ++ showType vt ++ " = " ++ showStatements stmts
+print' (StVal n override implicit vt stmts) = showDecorators override implicit ++ "val " ++ showName n ++ showType vt ++ " = " ++ showStatements stmts False
   where
     showDecorators True False = "override "
     showDecorators False True = "implicit "
     showDecorators True True = "override implicit "
     showDecorators False False = ""
 
-print' (StNew n caseclass vs stmts) = showNew ++ n ++ "(" ++ (concat $ intersperse "," vs) ++ ")" ++ showStatements stmts
+print' (StNew n caseclass vs stmts) = showNew ++ n ++ "(" ++ (concat $ intersperse "," vs) ++ ")" ++ showStatements stmts True
   where
     showNew = if caseclass then "" else "new "
 
-print' (StField n n' as stmts) = showName n ++ "." ++ showName n' ++ showArgs as ++ (showStatements stmts)
+print' (StField n n' as stmts) = showName n ++ "." ++ showName n' ++ showArgs as ++ showStatements stmts True
 
-print' (StLambda ps stmts) = showArgs ps ++ " => " ++ showStatements stmts
+print' (StLambda ps stmts) = showArgs ps ++ " => " ++ showStatements stmts False
 
 print' (StPair k v) = k ++ " -> " ++ v
 
@@ -63,7 +63,7 @@ print' (StArgument n t v) =
   in
     maybe n'' (\v -> n'' ++ "= " ++ v) v
 
-print' (StFor stmts ys) = "for " ++ showStatements stmts ++ " yield " ++ showStatements ys
+print' (StFor stmts ys) = "for " ++ showStatements stmts True ++ " yield " ++ showStatements ys False
 
 print' (StGenerator n stmt) = showName n ++ " <- " ++ stmt
 
@@ -73,10 +73,10 @@ print' (StIdent i) = showName i
 
 print' (StSome x) = "Some(" ++ x ++ ")"
 
-showStatements :: [String] -> String
-showStatements [] = []
-showStatements [stmt] = stmt
-showStatements stmts = "{\n" ++ (concat $ intersperse "\n" stmts) ++ "\n}"
+showStatements :: [String] -> Bool -> String
+showStatements [] _ = []
+showStatements [stmt] False = stmt
+showStatements stmts _ = "{\n" ++ (concat $ intersperse "\n\n" stmts) ++ "\n}"
 
 showArgs :: [String] -> String
 showArgs [] = ""

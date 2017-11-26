@@ -22,7 +22,7 @@ loadFiles = do
 saveFiles :: Map.Map FilePath [Stmt] -> Eval (Map.Map FilePath ())
 saveFiles m = 
   let
-    save = \f stmts -> liftIO $ writeFile (f ++ ".scala") $ concat $ intersperse "\n" $ fmap printScala stmts
+    save = \f stmts -> liftIO $ writeFile (f ++ ".scala") $ concat $ intersperse "\n\n" $ fmap printScala stmts
   in Map.traverseWithKey save m
 
 --- Compiles ./*.thrift -> ./*.scala
