@@ -176,9 +176,9 @@ We have defined `TFieldCodec` but not `TStructCodec` yet:
 
 ```scala
 trait TStructCodec[A] {
-  def defaults: HMap[KVRelation]
-  def encode: A => HMap[KVRelation]
-  def decode: HMap[KVRelation] => Option[A]
+  def defaults: HMap[TFieldCodec]
+  def encode: A => HMap[TFieldCodec]
+  def decode: HMap[TFieldCodec] => Option[A]
 }
 ```
 
@@ -206,7 +206,7 @@ union AtomData {
 becomes, as one would expect
 
 ```scala
-sealed trait AtomData extends TStruct
+sealed trait AtomData extends TUnion
 case class Quiz(quiz: QuizAtom) extends AtomData
 case class Media(media: MediaAtom) extends AtomData
 case class Explainer(explainer: ExplainerAtom) extends AtomData
@@ -221,10 +221,15 @@ case class Profile(profile: ProfileAtom) extends AtomData
 case class Timeline(timeline: TimelineAtom) extends AtomData
 ```
 
-Note that we tag unions as structs, because their encoding is similar from the outside. We will reuse the `HMap` abstraction, even though there will only ever be a single value (I've skipped the singleton type kung-fu, you can mentally fill in the blanks):
+Unions are very similar to structs, and so are their encoding. We will reuse the `HMap` abstraction, even though there will only ever be a single value (I've skipped the singleton type kung-fu, you can mentally fill in the blanks):
 
 ```scala
-object AtomData extends TStructCodec[AtomData] {
+trait TUnionCodec[A] {
+  def encode: A => HMap[TFieldCodec]
+  def decode: HMap[TFieldCodec] => Option[A]
+}
+
+object AtomData extends TUnionCodec[AtomData] {
   implicit val r1 = new TFieldCodec[QuizAtom]
   implicit val r2 = new TFieldCodec[Media]
   implicit val r3 = new TFieldCodec[Explainer]
@@ -239,18 +244,18 @@ object AtomData extends TStructCodec[AtomData] {
   implicit val r12 = new TFieldCodec[Timeline]
 
   def encode = {
-    case Quiz(x)            => HMap[KVRelation](1  -> x)
-    case Media(x)           => HMap[KVRelation](-1 -> x)
-    case Explainer(x)       => HMap[KVRelation](-2 -> x)
-    case Cta(x)             => HMap[KVRelation](5  -> x)
-    case Interactive(x)     => HMap[KVRelation](6  -> x)
-    case Review(x)          => HMap[KVRelation](7  -> x)
-    case Recipe(x)          => HMap[KVRelation](-3 -> x)
-    case Storyquestions(x)  => HMap[KVRelation](9  -> x)
-    case Qanda(x)           => HMap[KVRelation](10 -> x)
-    case Guide(x)           => HMap[KVRelation](11 -> x)
-    case Profile(x)         => HMap[KVRelation](12 -> x)
-    case Timeline(x)        => HMap[KVRelation](13 -> x)
+    case Quiz(x)            => HMap[TFieldCodec](1  -> x)
+    case Media(x)           => HMap[TFieldCodec](-1 -> x)
+    case Explainer(x)       => HMap[TFieldCodec](-2 -> x)
+    case Cta(x)             => HMap[TFieldCodec](5  -> x)
+    case Interactive(x)     => HMap[TFieldCodec](6  -> x)
+    case Review(x)          => HMap[TFieldCodec](7  -> x)
+    case Recipe(x)          => HMap[TFieldCodec](-3 -> x)
+    case Storyquestions(x)  => HMap[TFieldCodec](9  -> x)
+    case Qanda(x)           => HMap[TFieldCodec](10 -> x)
+    case Guide(x)           => HMap[TFieldCodec](11 -> x)
+    case Profile(x)         => HMap[TFieldCodec](12 -> x)
+    case Timeline(x)        => HMap[TFieldCodec](13 -> x)
   }
 
   def decode = m =>
