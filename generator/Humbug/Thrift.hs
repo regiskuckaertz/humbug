@@ -29,6 +29,7 @@ data NamespaceScope = NsStar
                     | NsJava 
                     | NsPython 
                     | NsPerl 
+                    | NsRuby
                     | NsCocoa 
                     | NsCsharp 
                     deriving Show
