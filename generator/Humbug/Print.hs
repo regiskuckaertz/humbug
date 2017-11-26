@@ -94,12 +94,58 @@ showAncestor = maybe "" (" extends " ++)
 
 showValue :: Maybe Value -> String
 showValue = maybe "" (" = " ++) 
-showValue :: Maybe Value -> String
-showValue = maybe "" (" = " ++) 
 
 showName :: String -> String
-showName n | isReserved = "`" ++ n ++ "`"
+showName n | elem n reserved = "`" ++ n ++ "`"
            | otherwise = n
   where 
-    isReserved = if n == "type" then True
-                                else False
+    reserved = [ "abstract" 
+               , "do" 
+               , "finally" 
+               , "import" 
+               , "object" 
+               , "return" 
+               , "trait" 
+               , "var"
+               , "case" 
+               , "catch" 
+               , "class" 
+               , "else" 
+               , "extends" 
+               , "false" 
+               , "for" 
+               , "forSome" 
+               , "if"
+               , "lazy" 
+               , "match" 
+               , "new" 
+               , "override" 
+               , "package" 
+               , "private" 
+               , "sealed" 
+               , "super" 
+               , "this" 
+               , "try" 
+               , "true" 
+               , "type" 
+               , "while" 
+               , "with" 
+               , "yield"
+               , "def"
+               , "final" 
+               , "implicit" 
+               , "null" 
+               , "protected" 
+               , "throw"
+               , "val"
+               , "_" 
+               , ":"
+               , "="
+               , "=>" 
+               , "<-" 
+               , "<:"
+               , "<%"
+               , ">:" 
+               , "#" 
+               , "@"
+               ]
