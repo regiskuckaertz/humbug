@@ -11,7 +11,8 @@ scalacOptions ++= Seq("-feature", "-language:higherKinds")
 
 libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck"    % "1.13.4" % "test",
-  "org.scodec"     %% "scodec-stream" % "1.0.1",
+  "org.scodec"     %% "scodec-bits"   % "1.1.5",
+  "org.scodec"     %% "scodec-core"   % "1.10.3",
   "com.chuusai"    %% "shapeless"     % "2.3.2"
 )
 
