@@ -2,14 +2,17 @@ module Humbug.Compile
 ( compile
 ) where
 
+import Control.Monad.IO.Class
+import Control.Monad.Trans.Except
 import Data.Char(toUpper)
 import Data.List(elemIndices, foldr1, intersperse)
 import Data.Monoid(mconcat)
 import qualified Data.Map.Strict as Map
 import Humbug.Scala
 import Humbug.Thrift
+import Humbug.Types
 
-compile :: Document -> Map.Map FilePath [Stmt]
+compile :: Document -> Eval (Map.Map FilePath [Stmt])
 compile (Document hs ds) = let 
   pkg = buildPackage hs
   imps = buildImports hs
@@ -17,7 +20,8 @@ compile (Document hs ds) = let
   cnts = foldr (compile'' pkg) [] ds
   pobj = buildPackageObject pkg cnts
   in 
-    mappend (prelude pkg <$> defs) (prelude' pkg <$> pobj)
+    do  _ <- liftIO $ putStrLn ("Compiling Scala...")
+        ExceptT $ return $ Right $ mappend (prelude pkg <$> defs) (prelude' pkg <$> pobj)
   where
     prelude pkg stmts = scalaPackage pkg : stmts
     prelude' pkg stmts = scalaPackage pkg' : stmts

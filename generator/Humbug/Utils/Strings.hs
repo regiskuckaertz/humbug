@@ -1,4 +1,4 @@
-module Utils.Strings
+module Humbug.Utils.Strings
 ( string2int
 ) where
 

@@ -2,14 +2,19 @@ module Humbug.Tokenize
 ( tokenize
 ) where
 
+import Control.Monad.IO.Class
+import Control.Monad.Trans.Except
+import Humbug.Thrift
 import Humbug.Types
 import Humbug.Utils.Strings
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Token
 import Text.Parsec.Language(LanguageDef, javaStyle)
 
-tokenize :: String -> Either ParseError Document
-tokenize       = parse tokenize_impl "(unknown)"
+tokenize :: String -> Eval Document
+tokenize t     = do
+  _ <- liftIO $ putStrLn ("Parsing " ++ t)
+  ExceptT $ return $ parse tokenize_impl "(unknown)" t
 
 tokenize_impl  = do { whiteSpace thrift
                     ; headers <- many header
@@ -45,23 +50,23 @@ cppInclude     = do { try (symbol thrift "cpp_include")
                     }
 
 namespace      = do { try (symbol thrift "namespace")
-                    ; scope <- scope thrift
+                    ; scp <- scope
                     ; ident <- identifier thrift
-                    ; return $ Namespace scope ident
+                    ; return $ Namespace scp ident
                     }
 
-scope          = try (symbol thrift "*") >> return NsStar
-               <|> try (symbol thrift "java") >> return NsJava
+scope          = (try (symbol thrift "*") >> return NsStar)
+               <|> (try (symbol thrift "java") >> return NsJava)
                -- the scala namespace is not standard and
                -- redundant with the java namespace but some
                -- thrift files use it
-               <|> try (symbol thrift "scala") >> return NsJava
-               <|> try (symbol thrift "rb") >> return NsRuby
-               <|> try (symbol thrift "cpp") >> return NsCpp
-               <|> try (symbol thrift "cocoa") >> return NsCocoa
-               <|> try (symbol thrift "csharp") >> return NsCsharp
-               <|> try (symbol thrift "py") >> return NsPython
-               <|> try (symbol thrift "perl") >> return NsPerl
+               <|> (try (symbol thrift "scala") >> return NsJava)
+               <|> (try (symbol thrift "rb") >> return NsRuby)
+               <|> (try (symbol thrift "cpp") >> return NsCpp)
+               <|> (try (symbol thrift "cocoa") >> return NsCocoa)
+               <|> (try (symbol thrift "csharp") >> return NsCsharp)
+               <|> (try (symbol thrift "py") >> return NsPython)
+               <|> (try (symbol thrift "perl") >> return NsPerl)
 
 --- Definitions
 
@@ -154,15 +159,15 @@ namedField     = FtNamed <$> identifier thrift
 
 baseField      = FtBase <$> baseTypeIdentifier
 
-baseTypeIdentifier = try (symbol thrift "bool") >> return BtBool
-                    <|> try (symbol thrift "byte") >> return BtByte
-                    <|> try (symbol thrift "i8") >> return BtInt8
-                    <|> try (symbol thrift "i16") >> return BtInt16
-                    <|> try (symbol thrift "i32") >> return BtInt32
-                    <|> try (symbol thrift "i64") >> return BtInt64
-                    <|> try (symbol thrift "double") >> return BtDouble
-                    <|> try (symbol thrift "string") >> return BtString
-                    <|> try (symbol thrift "binary") >> return BtBinary
+baseTypeIdentifier = (try (symbol thrift "bool") >> return BtBool)
+                    <|> (try (symbol thrift "byte") >> return BtByte)
+                    <|> (try (symbol thrift "i8") >> return BtInt8)
+                    <|> (try (symbol thrift "i16") >> return BtInt16)
+                    <|> (try (symbol thrift "i32") >> return BtInt32)
+                    <|> (try (symbol thrift "i64") >> return BtInt64)
+                    <|> (try (symbol thrift "double") >> return BtDouble)
+                    <|> (try (symbol thrift "string") >> return BtString)
+                    <|> (try (symbol thrift "binary") >> return BtBinary)
 
 containerField = FtContainer <$> (mapType <|> setType <|> listType)
 
