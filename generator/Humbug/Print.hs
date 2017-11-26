@@ -39,7 +39,7 @@ print' (StCase v vt stmts) = "case " ++ v ++ showType vt ++ " => " ++ showStatem
 
 print' (StTrait n stmts) = "trait " ++ n ++ showStatements stmts
 
-print' (StVal n override implicit vt stmts) = showDecorators override implicit ++ "val " ++ n ++ showType vt ++ " = " ++ showStatements stmts
+print' (StVal n override implicit vt stmts) = showDecorators override implicit ++ "val " ++ showName n ++ showType vt ++ " = " ++ showStatements stmts
   where
     showDecorators True False = "override "
     showDecorators False True = "implicit "
@@ -50,7 +50,7 @@ print' (StNew n caseclass vs stmts) = showNew ++ n ++ "(" ++ (concat $ intersper
   where
     showNew = if caseclass then "" else "new "
 
-print' (StField n n' as stmts) = n ++ "." ++ n' ++ showArgs as ++ (showStatements stmts)
+print' (StField n n' as stmts) = showName n ++ "." ++ showName n' ++ showArgs as ++ (showStatements stmts)
 
 print' (StLambda ps stmts) = showArgs ps ++ " => " ++ showStatements stmts
 
@@ -58,17 +58,18 @@ print' (StPair k v) = k ++ " -> " ++ v
 
 print' (StArgument n t v) =
   let
-    n' = maybe n (\t -> n ++ ": " ++ t) t
+    n' = showName n
+    n'' = maybe n' (\t -> n' ++ ": " ++ t) t
   in
-    maybe n' (\v -> n' ++ "= " ++ v) v
+    maybe n'' (\v -> n'' ++ "= " ++ v) v
 
 print' (StFor stmts ys) = "for " ++ showStatements stmts ++ " yield " ++ showStatements ys
 
-print' (StGenerator n stmt) = n ++ " <- " ++ stmt
+print' (StGenerator n stmt) = showName n ++ " <- " ++ stmt
 
 print' (StLiteral v) = v
 
-print' (StIdent i) = i
+print' (StIdent i) = showName i
 
 print' (StSome x) = "Some(" ++ x ++ ")"
 
@@ -93,3 +94,12 @@ showAncestor = maybe "" (" extends " ++)
 
 showValue :: Maybe Value -> String
 showValue = maybe "" (" = " ++) 
+showValue :: Maybe Value -> String
+showValue = maybe "" (" = " ++) 
+
+showName :: String -> String
+showName n | isReserved = "`" ++ n ++ "`"
+           | otherwise = n
+  where 
+    isReserved = if n == "type" then True
+                                else False
