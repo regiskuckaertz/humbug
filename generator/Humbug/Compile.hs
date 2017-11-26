@@ -185,7 +185,7 @@ buildType (FtContainer (CtSet ft)) = "Set[" ++ (buildType ft) ++ "]"
 buildType (FtContainer (CtList ft)) = "List[" ++ (buildType ft) ++ "]"
 buildType (FtNamed ident) = case (elemIndices '.' ident) of
   [] -> ident
-  is -> drop (last is) ident
+  is -> drop (last is + 1) ident
 
 buildValue :: ConstValue -> Stmt
 buildValue (CvInt i) = scalaLiteral i
