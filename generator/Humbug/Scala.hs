@@ -8,6 +8,7 @@ module Humbug.Scala
 , Value
 , scalaPackage
 , scalaImport
+, scalaImportPlaceholder
 , scalaPackageObject
 , scalaSealedTrait
 , scalaCaseClass
@@ -38,6 +39,7 @@ type Type = String
 type Value = String
 
 data StmtF a =  StPackage Name
+              | StImportPlaceholder Name
               | StImport Name [(Name, Maybe Name)]
               | StPackageObject Name [a]
               | StSealedTrait Name (Maybe Name) [a]
@@ -67,6 +69,9 @@ scalaPackage = Fix . StPackage
 
 scalaImport :: Name -> [(Name, Maybe Name)] -> Stmt
 scalaImport n = Fix . StImport n
+
+scalaImportPlaceholder :: Name -> Stmt
+scalaImportPlaceholder = Fix . StImportPlaceholder
 
 scalaPackageObject :: Name -> [Stmt] -> Stmt
 scalaPackageObject n = Fix . StPackageObject n
