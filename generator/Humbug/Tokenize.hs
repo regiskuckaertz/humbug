@@ -2,19 +2,16 @@ module Humbug.Tokenize
 ( tokenize
 ) where
 
-import Control.Monad.IO.Class
-import Control.Monad.Trans.Except
 import Humbug.Thrift
-import Humbug.Types
 import Humbug.Utils.Strings
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Token
 import Text.Parsec.Language(LanguageDef, javaStyle)
 
-tokenize :: String -> Eval Document
+tokenize :: FilePath -> IO (Either ParseError Document)
 tokenize t     = do
-  _ <- liftIO $ putStrLn ("Parsing " ++ t)
-  ExceptT $ return $ parse tokenize_impl "(unknown)" t
+  _ <- putStrLn ("Parsing " ++ t)
+  parseFromFile tokenize_impl t
 
 tokenize_impl  = do { whiteSpace thrift
                     ; headers <- many header
