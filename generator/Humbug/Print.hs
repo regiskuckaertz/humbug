@@ -2,7 +2,7 @@ module Humbug.Print
 ( printScala
 ) where
 
-import Data.Fix
+import Data.Fix(cata)
 import Data.List(concat, intersperse)
 import Humbug.Scala
 
@@ -23,7 +23,7 @@ print' (StImport n ns) = "import " ++ n ++ "." ++ showImports ns
 
 print' (StPackageObject n stmts) = "package object " ++ n ++ showStatements stmts True
 
-print' (StSealedTrait n p ccs) = "sealed trait " ++ n ++ showAncestor p ++ "\n" ++ (concat $ intersperse "\n" ccs)
+print' (StSealedTrait n p ccs) = "sealed trait " ++ n ++ showAncestor p ++ "\n" ++ join "\n" ccs
 
 print' (StCaseClass n as ps) = "case class " ++ n ++ showArgs as ++ showAncestors ps
 
@@ -76,18 +76,18 @@ print' (StSome x) = "Some(" ++ x ++ ")"
 showStatements :: [String] -> Bool -> String
 showStatements [] _ = []
 showStatements [stmt] False = stmt
-showStatements stmts _ = "{\n" ++ (concat $ intersperse "\n" stmts) ++ "\n}"
+showStatements stmts _ = "{\n" ++ join "\n" stmts ++ "\n}"
 
 showArgs :: [String] -> String
 showArgs [] = ""
-showArgs as = ("(" ++) $ (++ ")") $ concat $ intersperse ",\n" as
+showArgs as = ("(" ++) $ (++ ")") $ join ",\n" as
 
 showType :: Maybe Type -> String
 showType = maybe "" (": " ++)
 
 showAncestors :: [Name] -> String
 showAncestors [] = ""
-showAncestors ps = " extends " ++ (concat $ intersperse " with " ps)
+showAncestors ps = " extends " ++ join " with " ps
 
 showAncestor :: Maybe Name -> String
 showAncestor = maybe "" (" extends " ++)
@@ -149,3 +149,6 @@ showName n | elem n reserved = "`" ++ n ++ "`"
                , "#" 
                , "@"
                ]
+
+join :: String -> [String] -> String
+join sep = concat . intersperse sep
