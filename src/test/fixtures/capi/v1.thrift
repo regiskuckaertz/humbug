@@ -1,6 +1,6 @@
 include "story_package_article.thrift"
-include "contentatom.thrift"
-include "entity.thrift"
+include "contentatoms/contentatom.thrift"
+include "contententities/entity.thrift"
 include "story_model.thrift"
 
 namespace scala com.gu.contentapi.client.model.v1

@@ -1,7 +1,6 @@
 namespace java com.gu.story.model.v1
-#@namespace scala com.gu.story.model.v1
 
-include "contentatom.thrift"
+include "contentatoms/contentatom.thrift"
 
 enum ContentType {
     ARTICLE = 0,

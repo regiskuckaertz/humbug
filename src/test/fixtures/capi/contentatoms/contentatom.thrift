@@ -1,5 +1,4 @@
 namespace java com.gu.contentatom.thrift
-#@namespace scala com.gu.contentatom.thrift
 
 include "atoms/quiz.thrift"
 include "atoms/media.thrift"
