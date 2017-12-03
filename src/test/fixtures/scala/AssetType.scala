@@ -7,28 +7,19 @@ case object AUDIO extends AssetType
 case object EMBED extends AssetType
 case object TWEET extends AssetType
 
-object AssetType extends TEnumCodec[AssetType]{
-override def encode = {
-case IMAGE => 0
-
-case VIDEO => 1
-
-case AUDIO => 2
-
-case EMBED => 3
-
-case TWEET => 4
-}
-
-override def decode = {
-case 0 => IMAGE
-
-case 1 => VIDEO
-
-case 2 => AUDIO
-
-case 3 => EMBED
-
-case 4 => TWEET
-}
+object AssetType extends TEnumCodec[AssetType] {
+  override def encode = {
+    case IMAGE ⇒ 0
+    case VIDEO ⇒ 1
+    case AUDIO ⇒ 2
+    case EMBED ⇒ 3
+    case TWEET ⇒ 4
+  }
+  override def decode = {
+    case 0 ⇒ IMAGE
+    case 1 ⇒ VIDEO
+    case 2 ⇒ AUDIO
+    case 3 ⇒ EMBED
+    case 4 ⇒ TWEET
+  }
 }
