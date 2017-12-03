@@ -46,7 +46,7 @@ print' (StVal n override implicit vt stmts) = showDecorators override implicit +
     showDecorators True True = "override implicit "
     showDecorators False False = ""
 
-print' (StNew n caseclass vs stmts) = showNew ++ n ++ "(" ++ (concat $ intersperse "," vs) ++ ")" ++ showStatements stmts True
+print' (StNew n caseclass vs stmts) = showNew ++ n ++ showArgs vs ++ showStatements stmts True
   where
     showNew = if caseclass then "" else "new "
 
@@ -76,11 +76,11 @@ print' (StSome x) = "Some(" ++ x ++ ")"
 showStatements :: [String] -> Bool -> String
 showStatements [] _ = []
 showStatements [stmt] False = stmt
-showStatements stmts _ = "{\n" ++ (concat $ intersperse "\n\n" stmts) ++ "\n}"
+showStatements stmts _ = "{\n" ++ (concat $ intersperse "\n" stmts) ++ "\n}"
 
 showArgs :: [String] -> String
 showArgs [] = ""
-showArgs as = ("(" ++) $ (++ ")") $ concat $ intersperse "," as
+showArgs as = ("(" ++) $ (++ ")") $ concat $ intersperse ",\n" as
 
 showType :: Maybe Type -> String
 showType = maybe "" (": " ++)

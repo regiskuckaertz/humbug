@@ -36,8 +36,8 @@ loadThrift r f m =
     else do
       t@(Document hs ds) <- ExceptT $ withCurrentDirectory r $ tokenize f
       let r' = takeDirectory f
-      is <- liftIO $ traverse (withCurrentDirectory r' . getIncludes) $ filter isInclude hs
       let m' = Map.singleton f t `Map.union` m
+      is <- liftIO $ traverse (withCurrentDirectory r' . getIncludes) $ filter isInclude hs
       foldrM (loadThrift $ r </> r') m' is
 
 saveFiles :: FilePath -> Map.Map FilePath [Stmt] -> Eval (Map.Map FilePath ())
