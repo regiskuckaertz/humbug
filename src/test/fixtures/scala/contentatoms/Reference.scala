@@ -1,4 +1,4 @@
-package com.gu.contentapi.client.model.v1
+package com.gu.contentatom.thrift
 
 case class Reference(id: String,`type`: String) extends TStruct
 

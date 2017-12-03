@@ -1,4 +1,4 @@
-package com.gu.story.model.v1
+package com.gu.contentapi.client.model.v1
 
 sealed trait ContentType extends TEnum
 case object ARTICLE extends ContentType

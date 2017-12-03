@@ -1,4 +1,4 @@
-package com.gu.contentapi.client.model.v1
+package com.gu.contentatom.thrift
 
 case class User(email: String,firstName: Option[String]= None,lastName: Option[String]= None) extends TStruct
 

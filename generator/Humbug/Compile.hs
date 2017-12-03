@@ -6,7 +6,6 @@ import Control.Monad.IO.Class
 import Control.Monad.Trans.Except
 import Data.Char(toUpper)
 import Data.List(elemIndices, foldr1, intersperse)
-import Data.Monoid(mconcat)
 import qualified Data.Map.Strict as Map
 import Humbug.Scala
 import Humbug.Thrift
