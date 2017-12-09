@@ -10,7 +10,7 @@ printScala :: Stmt -> String
 printScala = cata print'
 
 print' :: StmtF String -> String
-print' (StPackage n) = "package " ++ n
+print' (StPackage n is cs) = "package " ++ n ++ "\n\n" ++ join "\n\n" is ++ "\n\n" ++ join "\n\n" cs
 
 print' (StImport n ns) = "import " ++ n ++ "." ++ showImports ns
   where

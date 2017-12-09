@@ -40,12 +40,12 @@ loadThrift r f m =
       is <- liftIO $ traverse (withCurrentDirectory r' . getIncludes) $ filter isInclude hs
       foldrM (loadThrift $ r </> r') m' is
 
-saveFiles :: FilePath -> Map.Map FilePath [Stmt] -> Eval (Map.Map FilePath ())
+saveFiles :: FilePath -> Map.Map FilePath Stmt -> Eval (Map.Map FilePath ())
 saveFiles dst m = Map.traverseWithKey save m
   where
-    save f stmts = do
+    save f stmt = do
       _ <- liftIO $ createDirectoryIfMissing True dst 
-      liftIO $ withCurrentDirectory dst $ writeFile (f ++ ".scala") $ concat $ intersperse "\n\n" $ fmap printScala stmts
+      liftIO $ withCurrentDirectory dst $ writeFile (f ++ ".scala") $ printScala stmt
 
 run :: FilePath -> FilePath -> Eval ()
 run f d = 

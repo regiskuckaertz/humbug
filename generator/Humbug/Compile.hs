@@ -11,19 +11,19 @@ import Humbug.Scala
 import Humbug.Thrift
 import Humbug.Types
 
-compile :: Document -> Eval (Map.Map FilePath [Stmt])
+compile :: Document -> Eval (Map.Map FilePath Stmt)
 compile (Document hs ds) = let 
-  pkg = buildPackage hs
+  pkg = maybe "humbug.sample" id $ foldr buildPackageName Nothing hs
   imps = foldMap buildImports hs
   defs = foldMap compile' ds
-  cnts = foldMap (compile'' pkg) ds
+  cnts = foldMap compile'' ds
   pobj = buildPackageObject pkg cnts
   in
     do  _ <- liftIO $ putStrLn ("Compiling Scala...")
         ExceptT $ return $ Right $ mappend (prelude pkg <$> defs) (prelude' pkg <$> pobj)
   where
-    prelude pkg stmts = scalaPackage pkg : stmts
-    prelude' pkg stmts = scalaPackage pkg' : stmts
+    prelude pkg stmts = scalaPackage pkg [] stmts
+    prelude' pkg stmts = scalaPackage pkg' [] stmts
       where
         pkg' = case (elemIndices '.' pkg) of
           [] -> pkg
@@ -34,29 +34,26 @@ compile' (Typedef ft ident) = Map.singleton ident (buildTypedef ident ft)
 compile' (Enum ident vs) = Map.singleton ident (buildEnum ident vs)
 compile' (Struct ident fs) = Map.singleton ident (buildStruct ident fs)
 compile' (Union ident fs) = Map.singleton ident (buildUnion ident fs)
-compile' (Exception ident fs) = mempty
-compile' (Service ident pident fns) = mempty
 compile' _ = mempty
 
-compile'' :: String -> Definition -> [Stmt]
-compile'' pkg (Const ct cn cv) = 
+compile'' :: Definition -> [Stmt]
+compile'' (Const ct cn cv) = 
   let
     ft = Just $ buildType ct
     fv = buildValue cv
   in [scalaVal cn False False ft [fv]]
-compile'' pkg _  = []
+compile'' _  = []
 
-buildPackage :: [Header] -> String
-buildPackage [] = "humbug.sample"
-buildPackage (Namespace NsJava ident : _) = ident
-buildPackage (Namespace NsStar ident : _) = ident
-buildPackage (_ : hs) = buildPackage hs
+buildPackageName :: Header -> Maybe String -> Maybe String
+buildPackageName (Namespace NsJava ident) _ = Just ident
+buildPackageName (Namespace NsStar ident) Nothing = Just ident
+buildPackageName _ x = x
 
 buildPackageObject :: String -> [Stmt] -> Map.Map FilePath [Stmt]
 buildPackageObject pkg cnts = 
   case cnts of
     [] -> mempty
-    _ -> Map.singleton "package" [(scalaPackageObject (buildPackageName pkg) cnts)]
+    _ -> Map.singleton "package" [(scalaPackageObject (buildPackageObjectName pkg) cnts)]
 
 buildImports :: Header -> [Stmt]
 buildImports (Include lit) = [scalaImportPlaceholder lit]
@@ -238,7 +235,7 @@ buildConst :: Definition -> [Stmt] -> [Stmt]
 buildConst (Const ft ident cv) ss = (scalaVal ident False False (Just $ buildType ft) []) : ss
 buildConst _ ss = ss
 
-buildPackageName :: String -> String
-buildPackageName pkg = case (elemIndices '.' pkg) of
+buildPackageObjectName :: String -> String
+buildPackageObjectName pkg = case (elemIndices '.' pkg) of
   [] -> pkg
   is -> drop ((last is) + 1) pkg

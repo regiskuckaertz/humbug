@@ -38,7 +38,7 @@ type Type = String
 
 type Value = String
 
-data StmtF a =  StPackage Name
+data StmtF a =  StPackage Name [a] [a]
               | StImportPlaceholder Name
               | StImport Name [(Name, Maybe Name)]
               | StPackageObject Name [a]
@@ -64,8 +64,8 @@ data StmtF a =  StPackage Name
               
 type Stmt = Fix StmtF
 
-scalaPackage :: Name -> Stmt
-scalaPackage = Fix . StPackage
+scalaPackage :: Name -> [Stmt] -> [Stmt] -> Stmt
+scalaPackage n is = Fix . StPackage n is
 
 scalaImport :: Name -> [(Name, Maybe Name)] -> Stmt
 scalaImport n = Fix . StImport n
