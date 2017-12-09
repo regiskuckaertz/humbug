@@ -1,4 +1,4 @@
-package contentatom.storyquestions
+package com.gu.contentatom.thrift.atom.storyquestions
 
 case class Answer(
   answerId:   String,

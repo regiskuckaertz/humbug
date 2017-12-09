@@ -1,4 +1,4 @@
-package contentatom.qanda
+package com.gu.contentatom.thrift.atom.qanda
 
 case class QAndAItem(
   title: Option[String] = None,

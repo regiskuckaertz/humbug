@@ -1,4 +1,4 @@
-package contentatom.guide
+package com.gu.contentatom.thrift.atom.guide
 
 case class GuideItem(
   title:    Option[String]       = None,

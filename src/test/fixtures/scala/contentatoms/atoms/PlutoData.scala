@@ -1,4 +1,4 @@
-package contentatom.media
+package com.gu.contentatom.thrift.atom.media
 
 case class PlutoData(
   commissionId: Option[String] = None,

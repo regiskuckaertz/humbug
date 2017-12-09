@@ -1,4 +1,4 @@
-package contentatom.review
+package com.gu.contentatom.thrift.atom.review
 
 sealed trait ReviewType extends TEnum
 case object RESTAURANT extends ReviewType

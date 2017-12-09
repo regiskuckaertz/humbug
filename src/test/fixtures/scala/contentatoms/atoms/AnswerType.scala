@@ -1,4 +1,4 @@
-package contentatom.storyquestions
+package com.gu.contentatom.thrift.atom.storyquestions
 
 sealed trait AnswerType extends TEnum
 case object CONTENT extends AnswerType

@@ -1,4 +1,4 @@
-package contentatom.review
+package com.gu.contentatom.thrift.atom.review
 
 case class Rating(
   maxRating:    Short,

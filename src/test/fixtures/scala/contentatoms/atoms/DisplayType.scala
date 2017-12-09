@@ -1,4 +1,4 @@
-package contentatom.explainer
+package com.gu.contentatom.thrift.atom.explainer
 
 sealed trait DisplayType extends TEnum
 case object FLAT extends DisplayType

@@ -1,4 +1,4 @@
-package contentatom.media
+package com.gu.contentatom.thrift.atom.media
 
 sealed trait PrivacyStatus extends TEnum
 case object PRIVATE extends PrivacyStatus

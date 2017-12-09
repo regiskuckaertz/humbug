@@ -1,4 +1,4 @@
-package contentatom.timeline
+package com.gu.contentatom.thrift.atom.timeline
 
 case class TimelineItem(
   title:      String,

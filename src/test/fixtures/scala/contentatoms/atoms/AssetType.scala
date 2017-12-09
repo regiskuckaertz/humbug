@@ -1,4 +1,4 @@
-package contentatom.media
+package com.gu.contentatom.thrift.atom.media
 
 sealed trait AssetType extends TEnum
 case object AUDIO extends AssetType

@@ -1,4 +1,4 @@
-package contentatom.cta
+package com.gu.contentatom.thrift.atom.cta
 
 case class CTAAtom(
   url:             String,

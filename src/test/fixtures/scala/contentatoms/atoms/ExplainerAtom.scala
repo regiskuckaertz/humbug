@@ -1,4 +1,4 @@
-package contentatom.explainer
+package com.gu.contentatom.thrift.atom.explainer
 
 case class ExplainerAtom(
   title:       String,

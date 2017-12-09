@@ -1,4 +1,4 @@
-package contentatom.qanda
+package com.gu.contentatom.thrift.atom.qanda
 
 case class QAndAAtom(
   typeLabel:  Option[String]   = None,

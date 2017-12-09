@@ -1,4 +1,4 @@
-package contentatom.timeline
+package com.gu.contentatom.thrift.atom.timeline
 
 case class TimelineAtom(
   typeLabel:   Option[String]     = None,

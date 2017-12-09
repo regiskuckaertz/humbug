@@ -1,4 +1,4 @@
-package contentatom.recipe
+package com.gu.contentatom.thrift.atom.recipe
 
 case class Range(
   from: Short,

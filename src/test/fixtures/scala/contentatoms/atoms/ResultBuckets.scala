@@ -1,4 +1,4 @@
-package contentatom.quiz
+package com.gu.contentatom.thrift.atom.quiz
 
 case class ResultBuckets(buckets: List[ResultBucket]) extends TStruct
 

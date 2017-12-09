@@ -1,4 +1,4 @@
-package contentatom.storyquestions
+package com.gu.contentatom.thrift.atom.storyquestions
 
 sealed trait RelatedStoryLinkType extends TEnum
 case object TAG extends RelatedStoryLinkType

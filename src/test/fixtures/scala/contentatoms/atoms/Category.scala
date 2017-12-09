@@ -1,4 +1,4 @@
-package contentatom.media
+package com.gu.contentatom.thrift.atom.media
 
 sealed trait Category extends TEnum
 case object DOCUMENTARY extends Category

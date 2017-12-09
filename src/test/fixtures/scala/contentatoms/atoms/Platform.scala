@@ -1,4 +1,4 @@
-package contentatom.media
+package com.gu.contentatom.thrift.atom.media
 
 sealed trait Platform extends TEnum
 case object YOUTUBE extends Platform

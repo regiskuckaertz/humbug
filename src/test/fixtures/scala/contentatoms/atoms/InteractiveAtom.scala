@@ -1,4 +1,4 @@
-package contentatom.interactive
+package com.gu.contentatom.thrift.atom.interactive
 
 case class InteractiveAtom(
   `type`:  String,

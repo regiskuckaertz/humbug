@@ -1,4 +1,4 @@
-package contentatom.profile
+package com.gu.contentatom.thrift.atom.profile
 
 case class ProfileItem(
   title: Option[String] = None,
