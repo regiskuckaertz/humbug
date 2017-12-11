@@ -1,8 +1,11 @@
+{-# LANGUAGE UnicodeSyntax #-}
+
 module Main where
 
 import Control.Monad((>=>), guard)
 import Control.Monad.IO.Class
 import Control.Monad.Except
+import Control.Monad.State.Strict(StateT)
 import Humbug.Compile
 import Humbug.Print
 import Humbug.Scala
@@ -13,6 +16,7 @@ import Data.Foldable(foldrM)
 import Data.List(uncons, intersperse, isSuffixOf)
 import System.Directory
   ( getCurrentDirectory
+  , setCurrentDirectory
   , createDirectoryIfMissing
   , withCurrentDirectory
   , listDirectory
@@ -22,44 +26,50 @@ import System.Environment(getArgs)
 import System.FilePath.Posix(makeRelative, takeDirectory, (</>))
 import qualified Data.Map.Strict as Map
 
-isInclude :: Header -> Bool
+isInclude ∷ Header → Bool
 isInclude (Include _) = True
 isInclude _ = False
 
-getIncludes :: Header -> IO FilePath
+getIncludes ∷ Header → IO FilePath
 getIncludes (Include f) = canonicalizePath f
 
-loadThrift :: FilePath -> FilePath -> Map.Map FilePath Document -> Eval (Map.Map FilePath Document)
-loadThrift r f m = 
+load ∷ FilePath → FilePath → Map.Map FilePath Document → Eval (Map.Map FilePath Document)
+load r f m = 
   if (Map.member f m)
     then return m
     else do
-      t@(Document hs ds) <- ExceptT $ withCurrentDirectory r $ tokenize f
+      d ← liftIO $ getCurrentDirectory
+      liftIO $ setCurrentDirectory r
+      t@(Document hs ds) ← tokenize f
+      liftIO $ setCurrentDirectory d
       let r' = takeDirectory f
       let m' = Map.singleton f t `Map.union` m
-      is <- liftIO $ traverse (withCurrentDirectory r' . getIncludes) $ filter isInclude hs
-      foldrM (loadThrift $ r </> r') m' is
+      is ← liftIO $ traverse (withCurrentDirectory r' . getIncludes) $ filter isInclude hs
+      foldrM (load $ r </> r') m' is
 
-saveFiles :: FilePath -> Map.Map FilePath Stmt -> Eval (Map.Map FilePath ())
+saveFiles ∷ FilePath → Map.Map FilePath Stmt → Eval (Map.Map FilePath ())
 saveFiles dst m = Map.traverseWithKey save m
   where
     save f stmt = do
-      _ <- liftIO $ createDirectoryIfMissing True dst 
+      _ ← liftIO $ createDirectoryIfMissing True dst 
       liftIO $ withCurrentDirectory dst $ writeFile (f ++ ".scala") $ printScala stmt
 
-run :: FilePath -> FilePath -> Eval ()
+run ∷ FilePath → FilePath → Eval ()
 run f d = 
   do
-    asrc <- liftIO $ canonicalizePath f
-    adst <- liftIO $ canonicalizePath d
-    _ <- liftIO $ createDirectoryIfMissing True adst
-    ts <- loadThrift (takeDirectory asrc) asrc Map.empty
-    ss <- Map.traverseWithKey (\k v -> compile v >>= saveFiles (adst </> (makeRelative (takeDirectory asrc) (takeDirectory k)))) ts
+    asrc ← liftIO $ canonicalizePath f
+    adst ← liftIO $ canonicalizePath d
+    liftIO $ createDirectoryIfMissing True adst
+    ts ← load (takeDirectory asrc) asrc Map.empty
+    ss ← Map.traverseWithKey (compileAndSave asrc adst) ts
     return ()
+  where
+    compileAndSave asrc adst src thrift = 
+      compile thrift >>= (saveFiles $ adst </> makeRelative (takeDirectory asrc) (takeDirectory src))
 
 --- Takes two args:
 --- - the Thrift file to compile
 --- - the destination folder for compiled assets
 main = do
-  (f : d : []) <- getArgs
+  (f : d : []) ← getArgs
   runEval $ run f d

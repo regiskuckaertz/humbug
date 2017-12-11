@@ -1,3 +1,5 @@
+{-# LANGUAGE UnicodeSyntax #-}
+
 module Humbug.Print
 ( printScala
 ) where
@@ -6,10 +8,10 @@ import Data.Fix(cata)
 import Data.List(concat, intersperse)
 import Humbug.Scala
 
-printScala :: Stmt -> String
+printScala ∷ Stmt → String
 printScala = cata print'
 
-print' :: StmtF String -> String
+print' ∷ StmtF String → String
 print' (StPackage n is cs) = "package " ++ n ++ "\n\n" ++ join "\n\n" is ++ "\n\n" ++ join "\n\n" cs
 
 print' (StImport n ns) = "import " ++ n ++ "." ++ showImports ns
@@ -54,18 +56,18 @@ print' (StField n n' as stmts) = showName n ++ "." ++ showName n' ++ showArgs as
 
 print' (StLambda ps stmts) = showArgs ps ++ " => " ++ showStatements stmts False
 
-print' (StPair k v) = k ++ " -> " ++ v
+print' (StPair k v) = k ++ " → " ++ v
 
 print' (StArgument n t v) =
   let
     n' = showName n
-    n'' = maybe n' (\t -> n' ++ ": " ++ t) t
+    n'' = maybe n' (\t → n' ++ ": " ++ t) t
   in
-    maybe n'' (\v -> n'' ++ "= " ++ v) v
+    maybe n'' (\v → n'' ++ "= " ++ v) v
 
 print' (StFor stmts ys) = "for " ++ showStatements stmts True ++ " yield " ++ showStatements ys False
 
-print' (StGenerator n stmt) = showName n ++ " <- " ++ stmt
+print' (StGenerator n stmt) = showName n ++ " ← " ++ stmt
 
 print' (StLiteral v) = v
 
@@ -73,29 +75,29 @@ print' (StIdent i) = showName i
 
 print' (StSome x) = "Some(" ++ x ++ ")"
 
-showStatements :: [String] -> Bool -> String
+showStatements ∷ [String] → Bool → String
 showStatements [] _ = []
 showStatements [stmt] False = stmt
 showStatements stmts _ = "{\n" ++ join "\n" stmts ++ "\n}"
 
-showArgs :: [String] -> String
+showArgs ∷ [String] → String
 showArgs [] = ""
 showArgs as = ("(" ++) $ (++ ")") $ join ",\n" as
 
-showType :: Maybe Type -> String
+showType ∷ Maybe Type → String
 showType = maybe "" (": " ++)
 
-showAncestors :: [Name] -> String
+showAncestors ∷ [Name] → String
 showAncestors [] = ""
 showAncestors ps = " extends " ++ join " with " ps
 
-showAncestor :: Maybe Name -> String
+showAncestor ∷ Maybe Name → String
 showAncestor = maybe "" (" extends " ++)
 
-showValue :: Maybe Value -> String
+showValue ∷ Maybe Value → String
 showValue = maybe "" (" = " ++) 
 
-showName :: String -> String
+showName ∷ String → String
 showName n | elem n reserved = "`" ++ n ++ "`"
            | otherwise = n
   where 
@@ -142,7 +144,7 @@ showName n | elem n reserved = "`" ++ n ++ "`"
                , ":"
                , "="
                , "=>" 
-               , "<-" 
+               , "←" 
                , "<:"
                , "<%"
                , ">:" 
@@ -150,5 +152,5 @@ showName n | elem n reserved = "`" ++ n ++ "`"
                , "@"
                ]
 
-join :: String -> [String] -> String
+join ∷ String → [String] → String
 join sep = concat . intersperse sep

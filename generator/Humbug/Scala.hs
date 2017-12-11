@@ -1,3 +1,4 @@
+{-# LANGUAGE UnicodeSyntax #-}
 {-# LANGUAGE DeriveFunctor #-}
 
 module Humbug.Scala
@@ -64,68 +65,68 @@ data StmtF a =  StPackage Name [a] [a]
               
 type Stmt = Fix StmtF
 
-scalaPackage :: Name -> [Stmt] -> [Stmt] -> Stmt
+scalaPackage ∷ Name → [Stmt] → [Stmt] → Stmt
 scalaPackage n is = Fix . StPackage n is
 
-scalaImport :: Name -> [(Name, Maybe Name)] -> Stmt
+scalaImport ∷ Name → [(Name, Maybe Name)] → Stmt
 scalaImport n = Fix . StImport n
 
-scalaImportPlaceholder :: Name -> Stmt
+scalaImportPlaceholder ∷ Name → Stmt
 scalaImportPlaceholder = Fix . StImportPlaceholder
 
-scalaPackageObject :: Name -> [Stmt] -> Stmt
+scalaPackageObject ∷ Name → [Stmt] → Stmt
 scalaPackageObject n = Fix . StPackageObject n
 
-scalaSealedTrait :: Name -> Maybe Name -> [Stmt] -> Stmt
+scalaSealedTrait ∷ Name → Maybe Name → [Stmt] → Stmt
 scalaSealedTrait n as = Fix . StSealedTrait n as
 
-scalaCaseClass :: Name -> [Stmt] -> [Name] -> Stmt
+scalaCaseClass ∷ Name → [Stmt] → [Name] → Stmt
 scalaCaseClass n as = Fix . StCaseClass n as
 
-scalaCaseObject :: Name -> [Stmt] -> Name -> Stmt
+scalaCaseObject ∷ Name → [Stmt] → Name → Stmt
 scalaCaseObject n as = Fix . StCaseObject n as
 
-scalaCompanionObject :: Name -> Maybe Name -> [Stmt] -> Stmt
+scalaCompanionObject ∷ Name → Maybe Name → [Stmt] → Stmt
 scalaCompanionObject n n' = Fix . StCompanionObject n n'
 
-scalaMethod :: Name -> Bool -> [Stmt] -> Maybe Type -> [Stmt] -> Stmt
+scalaMethod ∷ Name → Bool → [Stmt] → Maybe Type → [Stmt] → Stmt
 scalaMethod n o as t = Fix . StMethod n o as t
 
-scalaCase :: Value -> (Maybe Type) -> [Stmt] -> Stmt
+scalaCase ∷ Value → (Maybe Type) → [Stmt] → Stmt
 scalaCase v t = Fix . StCase v t
 
-scalaTrait :: Name -> [Stmt] -> Stmt
+scalaTrait ∷ Name → [Stmt] → Stmt
 scalaTrait n = Fix . StTrait n
 
-scalaVal :: Name -> Bool -> Bool -> Maybe Type -> [Stmt] -> Stmt
+scalaVal ∷ Name → Bool → Bool → Maybe Type → [Stmt] → Stmt
 scalaVal n o i t = Fix . StVal n o i t
 
-scalaNew :: Name -> Bool -> [Stmt] -> [Stmt] -> Stmt
+scalaNew ∷ Name → Bool → [Stmt] → [Stmt] → Stmt
 scalaNew n o as = Fix . StNew n o as
 
-scalaField :: Stmt -> Name -> [Stmt] -> [Stmt] -> Stmt
+scalaField ∷ Stmt → Name → [Stmt] → [Stmt] → Stmt
 scalaField n n' as = Fix . StField n n' as
 
-scalaLambda :: [Stmt] -> [Stmt] -> Stmt
+scalaLambda ∷ [Stmt] → [Stmt] → Stmt
 scalaLambda as = Fix . StLambda as
 
-scalaPair :: Stmt -> Stmt -> Stmt
+scalaPair ∷ Stmt → Stmt → Stmt
 scalaPair v = Fix . StPair v
 
-scalaArgument :: Name -> Maybe Type -> Maybe Stmt -> Stmt
+scalaArgument ∷ Name → Maybe Type → Maybe Stmt → Stmt
 scalaArgument n t = Fix . StArgument n t
 
-scalaFor :: [Stmt] -> [Stmt] -> Stmt
+scalaFor ∷ [Stmt] → [Stmt] → Stmt
 scalaFor ss = Fix . StFor ss
 
-scalaGenerator :: Name -> Stmt -> Stmt
+scalaGenerator ∷ Name → Stmt → Stmt
 scalaGenerator n = Fix . StGenerator n
 
-scalaLiteral :: Show a => a -> Stmt
+scalaLiteral ∷ Show a ⇒ a → Stmt
 scalaLiteral = Fix . StLiteral . show
 
-scalaIdent :: Name -> Stmt
+scalaIdent ∷ Name → Stmt
 scalaIdent = Fix . StIdent
 
-scalaSome :: Stmt -> Stmt
+scalaSome ∷ Stmt → Stmt
 scalaSome = Fix . StSome

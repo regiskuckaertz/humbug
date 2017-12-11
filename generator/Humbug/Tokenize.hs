@@ -1,25 +1,30 @@
+{-# LANGUAGE UnicodeSyntax #-}
+
 module Humbug.Tokenize
 ( tokenize
 ) where
 
+import Control.Monad.IO.Class
+import Control.Monad.Except
 import Humbug.Thrift
+import Humbug.Types
 import Humbug.Utils.Strings
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Token
 import Text.Parsec.Language(LanguageDef, javaStyle)
 
-tokenize :: FilePath -> IO (Either ParseError Document)
+tokenize ∷ FilePath → Eval Document
 tokenize t     = do
-  _ <- putStrLn ("Parsing " ++ t)
-  parseFromFile tokenize_impl t
+  _ ← liftIO $ putStrLn ("Parsing " ++ t)
+  ExceptT $ liftIO $ parseFromFile tokenize_impl t
 
 tokenize_impl  = do { whiteSpace thrift
-                    ; headers <- many header
-                    ; definitions <- many definition
+                    ; headers ← many header
+                    ; definitions ← many definition
                     ; return $ Document headers definitions
                     }
 
-thriftDef :: LanguageDef st
+thriftDef ∷ LanguageDef st
 thriftDef       = javaStyle
                 { nestedComments = False
                 , identStart = letter <|> char '_'
@@ -30,25 +35,25 @@ thriftDef       = javaStyle
                 , opLetter = oneOf "@"
                 }
 
-thrift :: TokenParser st
+thrift ∷ TokenParser st
 thrift         = makeTokenParser thriftDef
 
 --- Headers
 header         = include <|> namespace
 
 include        = do { try (symbol thrift "include")
-                    ; filename <- literal
+                    ; filename ← literal
                     ; return $ Include filename
                     }
 
 cppInclude     = do { try (symbol thrift "cpp_include")
-                    ; filename <- literal
+                    ; filename ← literal
                     ; return $ CppInclude filename
                     }
 
 namespace      = do { try (symbol thrift "namespace")
-                    ; scp <- scope
-                    ; ident <- identifier thrift
+                    ; scp ← scope
+                    ; ident ← identifier thrift
                     ; return $ Namespace scp ident
                     }
 
@@ -76,53 +81,53 @@ definition     =   constant
                <|> service
 
 constant       = do { try (symbol thrift "const")
-                    ; ft <- fieldType
-                    ; ident <- identifier thrift
+                    ; ft ← fieldType
+                    ; ident ← identifier thrift
                     ; symbol thrift "="
-                    ; v <- constValue
+                    ; v ← constValue
                     ; listSeparator
                     ; return $ Const ft ident v
                     }
 
 typedef        = do { try (symbol thrift "typedef")
-                    ; dt <- fieldType
-                    ; ident <- identifier thrift
+                    ; dt ← fieldType
+                    ; ident ← identifier thrift
                     ; return $ Typedef dt ident
                     }
 
 enum           = do { try (symbol thrift "enum")
-                    ; ident <- identifier thrift
-                    ; bindings <- braces thrift (enumBinding `sepEndBy` listSeparator)
+                    ; ident ← identifier thrift
+                    ; bindings ← braces thrift (enumBinding `sepEndBy` listSeparator)
                     ; return $ Enum ident bindings
                     }
 
 enumBinding    = (,) <$> identifier thrift <*> optionMaybe (symbol thrift "=" *> intConstant)
 
 struct         = do { try (symbol thrift "struct")
-                    ; ident <- identifier thrift
-                    ; fields <- braces thrift fields
+                    ; ident ← identifier thrift
+                    ; fields ← braces thrift fields
                     ; return $ Struct ident fields
                     }
 
 union          = do { try (symbol thrift "union")
-                    ; ident <- identifier thrift
-                    ; fields <- braces thrift fields
+                    ; ident ← identifier thrift
+                    ; fields ← braces thrift fields
                     ; return $ Union ident fields
                     }
 
 exception      = do { try (symbol thrift "exception")
-                    ; ident <- identifier thrift
-                    ; fields <- braces thrift fields
+                    ; ident ← identifier thrift
+                    ; fields ← braces thrift fields
                     ; return $ Exception ident fields
                     }
 
 service        = do { try (symbol thrift "service")
-                    ; ident <- identifier thrift
-                    ; super <- optionMaybe (do { symbol thrift "extends"
-                                               ; ident <- identifier thrift
+                    ; ident ← identifier thrift
+                    ; super ← optionMaybe (do { symbol thrift "extends"
+                                               ; ident ← identifier thrift
                                                ; return ident
                                                })
-                    ; fns <- braces thrift (function `sepEndBy` listSeparator)
+                    ; fns ← braces thrift (function `sepEndBy` listSeparator)
                     ; return $ Service ident super fns
                     }
 
@@ -169,9 +174,9 @@ baseTypeIdentifier = (try (symbol thrift "bool") >> return BtBool)
 containerField = FtContainer <$> (mapType <|> setType <|> listType)
 
 mapType        = do { try (symbol thrift "map")
-                    ; (kt, vt) <- angles thrift $ do { k <- fieldType
+                    ; (kt, vt) ← angles thrift $ do { k ← fieldType
                                                      ; symbol thrift ","
-                                                     ; v <- fieldType
+                                                     ; v ← fieldType
                                                      ; return (k, v)
                                                      }
                     ; return $ CtMap kt vt
@@ -203,7 +208,7 @@ binding        = (,) <$> constValue <*> (symbol thrift ":" *> constValue)
 literal       = stringLiteral thrift <|> sqLiteral
 
 sqLiteral     = lexeme thrift (
-                  do{ str <-  between (char '\'')
+                  do{ str ←  between (char '\'')
                                       (char '\'' <?> "end of string")
                                       (many stringChar)
                     ; return (foldr (:) "" str)
