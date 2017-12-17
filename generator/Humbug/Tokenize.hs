@@ -6,14 +6,14 @@ module Humbug.Tokenize
 
 import Control.Monad.IO.Class
 import Control.Monad.Except
-import Humbug.Thrift
 import Humbug.Types
 import Humbug.Utils.Strings
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Token
 import Text.Parsec.Language(LanguageDef, javaStyle)
+import qualified Humbug.Thrift as T
 
-tokenize ∷ FilePath → Eval Document
+tokenize ∷ FilePath → Eval T.Thrift
 tokenize t     = do
   _ ← liftIO $ putStrLn ("Parsing " ++ t)
   ExceptT $ liftIO $ parseFromFile tokenize_impl t
@@ -21,7 +21,7 @@ tokenize t     = do
 tokenize_impl  = do { whiteSpace thrift
                     ; headers ← many header
                     ; definitions ← many definition
-                    ; return $ Document headers definitions
+                    ; return $ T.document headers definitions
                     }
 
 thriftDef ∷ LanguageDef st
@@ -43,28 +43,28 @@ header         = include <|> namespace
 
 include        = do { try (symbol thrift "include")
                     ; filename ← literal
-                    ; return $ Include filename
+                    ; return $ T.include filename
                     }
 
 cppInclude     = do { try (symbol thrift "cpp_include")
                     ; filename ← literal
-                    ; return $ CppInclude filename
+                    ; return $ T.cppinclude filename
                     }
 
 namespace      = do { try (symbol thrift "namespace")
                     ; scp ← scope
                     ; ident ← identifier thrift
-                    ; return $ Namespace scp ident
+                    ; return $ T.namespace scp ident
                     }
 
-scope          = (try (symbol thrift "*") >> return NsStar)
-               <|> (try (symbol thrift "java") >> return NsJava)
-               <|> (try (symbol thrift "rb") >> return NsRuby)
-               <|> (try (symbol thrift "cpp") >> return NsCpp)
-               <|> (try (symbol thrift "cocoa") >> return NsCocoa)
-               <|> (try (symbol thrift "csharp") >> return NsCsharp)
-               <|> (try (symbol thrift "py") >> return NsPython)
-               <|> (try (symbol thrift "perl") >> return NsPerl)
+scope          = (try (symbol thrift "*") >> return T.NsStar)
+               <|> (try (symbol thrift "java") >> return T.NsJava)
+               <|> (try (symbol thrift "rb") >> return T.NsRuby)
+               <|> (try (symbol thrift "cpp") >> return T.NsCpp)
+               <|> (try (symbol thrift "cocoa") >> return T.NsCocoa)
+               <|> (try (symbol thrift "csharp") >> return T.NsCsharp)
+               <|> (try (symbol thrift "py") >> return T.NsPython)
+               <|> (try (symbol thrift "perl") >> return T.NsPerl)
 
 --- Definitions
 
@@ -82,19 +82,19 @@ constant       = do { try (symbol thrift "const")
                     ; symbol thrift "="
                     ; v ← constValue
                     ; listSeparator
-                    ; return $ Const ft ident v
+                    ; return $ T.constant ft ident v
                     }
 
 typedef        = do { try (symbol thrift "typedef")
                     ; dt ← fieldType
                     ; ident ← identifier thrift
-                    ; return $ Typedef dt ident
+                    ; return $ T.typedef dt ident
                     }
 
 enum           = do { try (symbol thrift "enum")
                     ; ident ← identifier thrift
                     ; bindings ← braces thrift (enumBinding `sepEndBy` listSeparator)
-                    ; return $ Enum ident bindings
+                    ; return $ T.enum ident bindings
                     }
 
 enumBinding    = (,) <$> identifier thrift <*> optionMaybe (symbol thrift "=" *> intConstant)
@@ -102,19 +102,19 @@ enumBinding    = (,) <$> identifier thrift <*> optionMaybe (symbol thrift "=" *>
 struct         = do { try (symbol thrift "struct")
                     ; ident ← identifier thrift
                     ; fields ← braces thrift fields
-                    ; return $ Struct ident fields
+                    ; return $ T.struct ident fields
                     }
 
 union          = do { try (symbol thrift "union")
                     ; ident ← identifier thrift
                     ; fields ← braces thrift fields
-                    ; return $ Union ident fields
+                    ; return $ T.union ident fields
                     }
 
 exception      = do { try (symbol thrift "exception")
                     ; ident ← identifier thrift
                     ; fields ← braces thrift fields
-                    ; return $ Exception ident fields
+                    ; return $ T.exception ident fields
                     }
 
 service        = do { try (symbol thrift "service")
@@ -124,50 +124,50 @@ service        = do { try (symbol thrift "service")
                                                ; return ident
                                                })
                     ; fns ← braces thrift (function `sepEndBy` listSeparator)
-                    ; return $ Service ident super fns
+                    ; return $ T.service ident super fns
                     }
 
 --- Fields
 
 fields         = (field `sepEndBy` listSeparator)
 
-field          = Field <$> optionMaybe (string2int <$> many1 digit <* symbol thrift ":")
-                       <*> optionMaybe (   do try (symbol thrift "required"); return Required
-                                       <|> do try (symbol thrift "optional"); return Optional)
-                       <*> fieldType
-                       <*> identifier thrift
-                       <*> optionMaybe (symbol thrift "=" *> constValue)
+field          = T.field <$> optionMaybe (string2int <$> many1 digit <* symbol thrift ":")
+                         <*> optionMaybe (   do try (symbol thrift "required"); return T.Required
+                                         <|> do try (symbol thrift "optional"); return T.Optional)
+                         <*> fieldType
+                         <*> identifier thrift
+                         <*> optionMaybe (symbol thrift "=" *> constValue)
 
 --- Functions
 
-function       = Function <$> option False (do try (symbol thrift "oneway"); return True)
-                          <*> functionType
-                          <*> identifier thrift
-                          <*> parens thrift fields
-                          <*> optionMaybe (try (symbol thrift "throws") *> parens thrift fields)
+function       = T.function <$> option False (do try (symbol thrift "oneway"); return True)
+                            <*> functionType
+                            <*> identifier thrift
+                            <*> parens thrift fields
+                            <*> optionMaybe (try (symbol thrift "throws") *> parens thrift fields)
 
-functionType   = do { try (symbol thrift "void"); return LtVoid }
-             <|> LtReturn <$> fieldType
+functionType   = do { try (symbol thrift "void"); return T.LtVoid }
+             <|> T.LtReturn <$> fieldType
 
 --- Types
 
 fieldType      = baseField <|> containerField <|> namedField
 
-namedField     = FtNamed <$> identifier thrift
+namedField     = T.ftnamed <$> identifier thrift
 
-baseField      = FtBase <$> baseTypeIdentifier
+baseField      = T.ftbase <$> baseTypeIdentifier
 
-baseTypeIdentifier = (try (symbol thrift "bool") >> return BtBool)
-                    <|> (try (symbol thrift "byte") >> return BtByte)
-                    <|> (try (symbol thrift "i8") >> return BtInt8)
-                    <|> (try (symbol thrift "i16") >> return BtInt16)
-                    <|> (try (symbol thrift "i32") >> return BtInt32)
-                    <|> (try (symbol thrift "i64") >> return BtInt64)
-                    <|> (try (symbol thrift "double") >> return BtDouble)
-                    <|> (try (symbol thrift "string") >> return BtString)
-                    <|> (try (symbol thrift "binary") >> return BtBinary)
+baseTypeIdentifier = (try (symbol thrift "bool") >> return T.ftbool)
+                    <|> (try (symbol thrift "byte") >> return T.ftbyte)
+                    <|> (try (symbol thrift "i8") >> return T.ftint8)
+                    <|> (try (symbol thrift "i16") >> return T.ftint16)
+                    <|> (try (symbol thrift "i32") >> return T.ftint32)
+                    <|> (try (symbol thrift "i64") >> return T.ftint64)
+                    <|> (try (symbol thrift "double") >> return T.ftdouble)
+                    <|> (try (symbol thrift "string") >> return T.ftstring)
+                    <|> (try (symbol thrift "binary") >> return T.ftbinary)
 
-containerField = FtContainer <$> (mapType <|> setType <|> listType)
+containerField = mapType <|> setType <|> listType
 
 mapType        = do { try (symbol thrift "map")
                     ; (kt, vt) ← angles thrift $ do { k ← fieldType
@@ -175,27 +175,27 @@ mapType        = do { try (symbol thrift "map")
                                                      ; v ← fieldType
                                                      ; return (k, v)
                                                      }
-                    ; return $ CtMap kt vt
+                    ; return $ T.ftmap kt vt
                     }
 
-setType        = CtSet <$> (try (symbol thrift "set") *> angles thrift fieldType)
+setType        = T.ftset <$> (try (symbol thrift "set") *> angles thrift fieldType)
 
-listType       = CtList <$> (try (symbol thrift "list") *> angles thrift fieldType)
+listType       = T.ftlist <$> (try (symbol thrift "list") *> angles thrift fieldType)
 
 --- Constant values
 constValue     = doubleConstant <|> intConstant <|> stringConstant <|> namedConst <|> constList <|> constMap
 
-intConstant    = CvInt <$> integer thrift
+intConstant    = T.cvint <$> fromIntegral <$> integer thrift
 
-doubleConstant = CvDouble <$> float thrift
+doubleConstant = T.cvdouble <$> float thrift
 
-stringConstant = CvLiteral <$> literal
+stringConstant = T.cvliteral <$> literal
 
-namedConst     = CvNamed <$> identifier thrift
+namedConst     = T.cvnamed <$> identifier thrift
 
-constList      = CvList <$> brackets thrift (constValue `sepEndBy` listSeparator)
+constList      = T.cvlist <$> brackets thrift (constValue `sepEndBy` listSeparator)
 
-constMap       = CvMap <$> braces thrift (binding `sepEndBy` listSeparator)
+constMap       = T.cvmap <$> braces thrift (binding `sepEndBy` listSeparator)
 
 binding        = (,) <$> constValue <*> (symbol thrift ":" *> constValue)
 
