@@ -30,7 +30,7 @@ module Humbug.Thrift
 , ftbool
 , ftbyte
 , ftint8
-, ftin16
+, ftint16
 , ftint32
 , ftint64
 , ftdouble
@@ -156,8 +156,8 @@ ftbyte :: FieldType
 ftbyte = Fix $ FtByte
 ftint8 :: FieldType
 ftint8 = Fix $ FtInt8
-ftin16 :: FieldType
-ftin16 = Fix $ FtInt16
+ftint16 :: FieldType
+ftint16 = Fix $ FtInt16
 ftint32 :: FieldType
 ftint32 = Fix $ FtInt32
 ftint64 :: FieldType
