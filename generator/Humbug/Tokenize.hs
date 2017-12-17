@@ -59,10 +59,6 @@ namespace      = do { try (symbol thrift "namespace")
 
 scope          = (try (symbol thrift "*") >> return NsStar)
                <|> (try (symbol thrift "java") >> return NsJava)
-               -- the scala namespace is not standard and
-               -- redundant with the java namespace but some
-               -- thrift files use it
-               <|> (try (symbol thrift "scala") >> return NsJava)
                <|> (try (symbol thrift "rb") >> return NsRuby)
                <|> (try (symbol thrift "cpp") >> return NsCpp)
                <|> (try (symbol thrift "cocoa") >> return NsCocoa)
