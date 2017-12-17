@@ -5,101 +5,99 @@ module Humbug.Print
 ) where
 
 import Data.Fix(cata)
-import Data.List(concat, intersperse)
 import Humbug.Scala
+import Prelude hiding(print)
+import Text.PrettyPrint
 
 printScala ∷ Stmt → String
-printScala = cata print'
+printScala = render . cata print
 
-print' ∷ StmtF String → String
-print' (StPackage n is cs) = "package " ++ n ++ "\n\n" ++ join "\n\n" is ++ "\n\n" ++ join "\n\n" cs
+print (StPackage n is cs) = text "package" <+> text n $$ vcat is $$ vcat cs
 
-print' (StImport n ns) = "import " ++ n ++ "." ++ showImports ns
-  where
-    showImports [] = "_"
-    showImports (n : []) = concat $ showImport n []
-    showImports ns = "{" ++ (concat $ intersperse "," $ foldr showImport [] ns) ++ "}"
+print (StImport n ns) = text "import" <+> text n <> dot <> imports ns
+  where imports [] = char '_'
+        imports ((n, Nothing) : []) = text n
+        imports ns = braces $ nest 1 $ vcat $ punctuate comma $ fmap import1 ns
 
-    showImport (n, Nothing) res = n : res
-    showImport (n, Just a) res = (n ++ "=>" ++ a) : res
+        import1 (n, Nothing) = text n
+        import1 (n, Just a) = text n <+> darr <+> text a
 
-print' (StPackageObject n stmts) = "package object " ++ n ++ showStatements stmts True
+print (StPackageObject n stmts) = text "package object" <+> text n <+> statements stmts
 
-print' (StSealedTrait n p ccs) = "sealed trait " ++ n ++ showAncestor p ++ "\n" ++ join "\n" ccs
+print (StSealedTrait n p ccs) = text "sealed trait" <+> text n <+> ancestor p <+> vcat ccs
 
-print' (StCaseClass n as ps) = "case class " ++ n ++ showArgs as ++ showAncestors ps
+print (StCaseClass n as ps) = text "case class" <+> text n <> args as <+> ancestors ps
 
-print' (StCaseObject n as p) = "case object " ++ n ++ showArgs as ++ showAncestor (Just p)
+print (StCaseObject n as p) = text "case object" <+> text n <> args as <+> anc
+  where anc = ancestor $ Just p
 
-print' (StCompanionObject n p stmts) = "object " ++ n ++ showAncestor p ++ showStatements stmts True
+print (StCompanionObject n p stmts) = text "object" <+> text n <+> ancestor p <+> statements stmts
 
-print' (StMethod n override as rt stmts) = showOverride ++ "def " ++ n ++ showArgs as ++ showType rt ++ " = " ++ showStatements stmts False
-  where
-    showOverride = if override then "override " else ""
+print (StMethod n o as rt stmts) = override o <+> text "def" <+> text n <> args as <> showType rt <+> equals <+> statements stmts
+  where override True = text "override"
+        override False = empty
     
-print' (StCase v vt stmts) = "case " ++ v ++ showType vt ++ " => " ++ showStatements stmts False
+print (StCase v vt stmts) = text "case" <+> text v <> showType vt <+> darr <+> statements stmts
 
-print' (StTrait n stmts) = "trait " ++ n ++ showStatements stmts False
+print (StTrait n stmts) = text "trait" <+> text n <+> statements stmts
 
-print' (StVal n override implicit vt stmts) = showDecorators override implicit ++ "val " ++ showName n ++ showType vt ++ " = " ++ showStatements stmts False
-  where
-    showDecorators True False = "override "
-    showDecorators False True = "implicit "
-    showDecorators True True = "override implicit "
-    showDecorators False False = ""
+print (StVal n override implicit vt stmts) = decorators override implicit <+> text "val" <+> name n <+> showType vt <+> equals <+> statements stmts
+  where decorators True False = text "override"
+        decorators False True = text "implicit"
+        decorators True True = text "override" <+> text "implicit"
+        decorators False False = empty
 
-print' (StNew n caseclass vs stmts) = showNew ++ n ++ showArgs vs ++ showStatements stmts True
-  where
-    showNew = if caseclass then "" else "new "
+print (StNew n cc vs stmts) = new cc <+> text n <> args vs <+> statements stmts
+  where new True = empty 
+        new False = text "new"
 
-print' (StField n n' as stmts) = showName n ++ "." ++ showName n' ++ showArgs as ++ showStatements stmts True
+print (StField n n' as stmts) = n <> dot <> name n' <> args as <+> statements stmts
 
-print' (StLambda ps stmts) = showArgs ps ++ " => " ++ showStatements stmts False
+print (StLambda ps stmts) = args ps <+> darr <+> statements stmts
 
-print' (StPair k v) = k ++ " → " ++ v
+print (StPair k v) = k <+> text "->" <+> v
 
-print' (StArgument n t v) =
-  let
-    n' = showName n
-    n'' = maybe n' (\t → n' ++ ": " ++ t) t
-  in
-    maybe n'' (\v → n'' ++ "= " ++ v) v
+print (StArgument n t v) = name n <+> showType t <+> value v
 
-print' (StFor stmts ys) = "for " ++ showStatements stmts True ++ " yield " ++ showStatements ys False
+print (StFor stmts ys) = text "for" <+> statements stmts <+> text "yield" <+> statements ys
 
-print' (StGenerator n stmt) = showName n ++ " ← " ++ stmt
+print (StGenerator n stmt) = name n <+> text "<-" <+> stmt
 
-print' (StLiteral v) = v
+print (StLiteral v) = text v
 
-print' (StIdent i) = showName i
+print (StIdent i) = name i
 
-print' (StSome x) = "Some(" ++ x ++ ")"
+print (StSome x) = text "Some" <> parens x
 
-showStatements ∷ [String] → Bool → String
-showStatements [] _ = []
-showStatements [stmt] False = stmt
-showStatements stmts _ = "{\n" ++ join "\n" stmts ++ "\n}"
+statements ∷ [Doc] → Doc
+statements = braces . nest 1 . vcat
 
-showArgs ∷ [String] → String
-showArgs [] = ""
-showArgs as = ("(" ++) $ (++ ")") $ join ",\n" as
+args ∷ [Doc] → Doc
+args = parens . nest 1 . vcat . punctuate comma
 
-showType ∷ Maybe Type → String
-showType = maybe "" (": " ++)
+showType ∷ Maybe Type → Doc
+showType = maybe empty (\t -> colon <+> text t)
 
-showAncestors ∷ [Name] → String
-showAncestors [] = ""
-showAncestors ps = " extends " ++ join " with " ps
+ancestors ∷ [Name] → Doc
+ancestors [] = empty
+ancestors ps = text "extends" <+> (vcat . punctuate with . fmap text) ps
+  where with = text "with"
 
-showAncestor ∷ Maybe Name → String
-showAncestor = maybe "" (" extends " ++)
+ancestor ∷ Maybe Name → Doc
+ancestor = maybe empty (\a -> text "extends" <+> text a)
 
-showValue ∷ Maybe Value → String
-showValue = maybe "" (" = " ++) 
+value ∷ Maybe Doc → Doc
+value = maybe empty (\v -> equals <+> v)
 
-showName ∷ String → String
-showName n | elem n reserved = "`" ++ n ++ "`"
-           | otherwise = n
+dot :: Doc
+dot = char '.'
+
+darr :: Doc
+darr = text "=>"
+
+name ∷ String → Doc
+name n | elem n reserved = char '`' <> text n <> char '`'
+       | otherwise = text n
   where 
     reserved = [ "abstract" 
                , "do" 
@@ -144,13 +142,10 @@ showName n | elem n reserved = "`" ++ n ++ "`"
                , ":"
                , "="
                , "=>" 
-               , "←" 
+               , "<-" 
                , "<:"
                , "<%"
                , ">:" 
                , "#" 
                , "@"
                ]
-
-join ∷ String → [String] → String
-join sep = concat . intersperse sep
