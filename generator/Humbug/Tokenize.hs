@@ -153,19 +153,17 @@ functionType   = do { try (symbol thrift "void"); return T.LtVoid }
 
 fieldType      = baseField <|> containerField <|> namedField
 
-namedField     = T.ftnamed <$> identifier thrift
+namedField     = T.FtNamed <$> identifier thrift
 
-baseField      = T.ftbase <$> baseTypeIdentifier
-
-baseTypeIdentifier = (try (symbol thrift "bool") >> return T.ftbool)
-                    <|> (try (symbol thrift "byte") >> return T.ftbyte)
-                    <|> (try (symbol thrift "i8") >> return T.ftint8)
-                    <|> (try (symbol thrift "i16") >> return T.ftint16)
-                    <|> (try (symbol thrift "i32") >> return T.ftint32)
-                    <|> (try (symbol thrift "i64") >> return T.ftint64)
-                    <|> (try (symbol thrift "double") >> return T.ftdouble)
-                    <|> (try (symbol thrift "string") >> return T.ftstring)
-                    <|> (try (symbol thrift "binary") >> return T.ftbinary)
+baseField      = (try (symbol thrift "bool") >> return T.FtBool)
+                  <|> (try (symbol thrift "byte") >> return T.FtByte)
+                  <|> (try (symbol thrift "i8") >> return T.FtInt8)
+                  <|> (try (symbol thrift "i16") >> return T.FtInt16)
+                  <|> (try (symbol thrift "i32") >> return T.FtInt32)
+                  <|> (try (symbol thrift "i64") >> return T.FtInt64)
+                  <|> (try (symbol thrift "double") >> return T.FtDouble)
+                  <|> (try (symbol thrift "string") >> return T.FtString)
+                  <|> (try (symbol thrift "binary") >> return T.FtBinary)
 
 containerField = mapType <|> setType <|> listType
 
@@ -175,27 +173,27 @@ mapType        = do { try (symbol thrift "map")
                                                      ; v ← fieldType
                                                      ; return (k, v)
                                                      }
-                    ; return $ T.ftmap kt vt
+                    ; return $ T.FtMap kt vt
                     }
 
-setType        = T.ftset <$> (try (symbol thrift "set") *> angles thrift fieldType)
+setType        = T.FtSet <$> (try (symbol thrift "set") *> angles thrift fieldType)
 
-listType       = T.ftlist <$> (try (symbol thrift "list") *> angles thrift fieldType)
+listType       = T.FtList <$> (try (symbol thrift "list") *> angles thrift fieldType)
 
 --- Constant values
 constValue     = doubleConstant <|> intConstant <|> stringConstant <|> namedConst <|> constList <|> constMap
 
-intConstant    = T.cvint <$> fromIntegral <$> integer thrift
+intConstant    = T.CvInt <$> fromIntegral <$> integer thrift
 
-doubleConstant = T.cvdouble <$> float thrift
+doubleConstant = T.CvDouble <$> float thrift
 
-stringConstant = T.cvliteral <$> literal
+stringConstant = T.CvLiteral <$> literal
 
-namedConst     = T.cvnamed <$> identifier thrift
+namedConst     = T.CvNamed <$> identifier thrift
 
-constList      = T.cvlist <$> brackets thrift (constValue `sepEndBy` listSeparator)
+constList      = T.CvList <$> brackets thrift (constValue `sepEndBy` listSeparator)
 
-constMap       = T.cvmap <$> braces thrift (binding `sepEndBy` listSeparator)
+constMap       = T.CvMap <$> braces thrift (binding `sepEndBy` listSeparator)
 
 binding        = (,) <$> constValue <*> (symbol thrift ":" *> constValue)
 
