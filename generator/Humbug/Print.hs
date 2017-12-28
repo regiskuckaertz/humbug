@@ -4,7 +4,7 @@ module Humbug.Print
 ( printScala
 ) where
 
-import Data.Fix(cata)
+import Data.Functor.Foldable(cata)
 import Humbug.Scala
 import Prelude hiding(print)
 import Text.PrettyPrint

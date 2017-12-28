@@ -31,7 +31,7 @@ module Humbug.Scala
 , scalaSome
 ) where
 
-import Data.Fix
+import Data.Functor.Foldable
 
 type Name = String
 
