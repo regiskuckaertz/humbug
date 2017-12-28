@@ -7,6 +7,7 @@ module Humbug.Scala
 , Name
 , Type
 , Value
+, scalaDocument
 , scalaPackage
 , scalaImport
 , scalaImportPlaceholder
@@ -29,6 +30,7 @@ module Humbug.Scala
 , scalaLiteral
 , scalaIdent
 , scalaSome
+, scalaNoop
 ) where
 
 import Data.Functor.Foldable
@@ -39,7 +41,8 @@ type Type = String
 
 type Value = String
 
-data StmtF a =  StPackage Name [a] [a]
+data StmtF a =  StCompilationUnit a [a]
+              | StPackage Name
               | StImportPlaceholder Name
               | StImport Name [(Name, Maybe Name)]
               | StPackageObject Name [a]
@@ -61,12 +64,16 @@ data StmtF a =  StPackage Name [a] [a]
               | StLiteral String
               | StIdent Name
               | StSome a
+              | StNoop
               deriving (Show, Functor)
               
 type Stmt = Fix StmtF
 
-scalaPackage ∷ Name → [Stmt] → [Stmt] → Stmt
-scalaPackage n is = Fix . StPackage n is
+scalaDocument ∷ Stmt → [Stmt] → Stmt
+scalaDocument pkg = Fix . StCompilationUnit pkg
+
+scalaPackage ∷ Name → Stmt
+scalaPackage = Fix . StPackage
 
 scalaImport ∷ Name → [(Name, Maybe Name)] → Stmt
 scalaImport n = Fix . StImport n
@@ -130,3 +137,6 @@ scalaIdent = Fix . StIdent
 
 scalaSome ∷ Stmt → Stmt
 scalaSome = Fix . StSome
+
+scalaNoop :: Stmt
+scalaNoop = Fix StNoop
