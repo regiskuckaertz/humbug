@@ -21,7 +21,7 @@ tokenize t     = do
 tokenize_impl  = do { whiteSpace thrift
                     ; headers ← many header
                     ; definitions ← many definition
-                    ; return $ T.document headers definitions
+                    ; return $ T.Thrift headers definitions
                     }
 
 thriftDef ∷ LanguageDef st
@@ -43,18 +43,18 @@ header         = include <|> namespace
 
 include        = do { try (symbol thrift "include")
                     ; filename ← literal
-                    ; return $ T.include filename
+                    ; return $ T.Include filename
                     }
 
 cppInclude     = do { try (symbol thrift "cpp_include")
                     ; filename ← literal
-                    ; return $ T.cppinclude filename
+                    ; return $ T.CppInclude filename
                     }
 
 namespace      = do { try (symbol thrift "namespace")
                     ; scp ← scope
                     ; ident ← identifier thrift
-                    ; return $ T.namespace scp ident
+                    ; return $ T.Namespace scp ident
                     }
 
 scope          = (try (symbol thrift "*") >> return T.NsStar)
@@ -65,6 +65,7 @@ scope          = (try (symbol thrift "*") >> return T.NsStar)
                <|> (try (symbol thrift "csharp") >> return T.NsCsharp)
                <|> (try (symbol thrift "py") >> return T.NsPython)
                <|> (try (symbol thrift "perl") >> return T.NsPerl)
+               <?> "unrecognised namespace scope"
 
 --- Definitions
 
@@ -75,6 +76,7 @@ definition     =   constant
                <|> union
                <|> exception
                <|> service
+               <?> "unregonised definition"
 
 constant       = do { try (symbol thrift "const")
                     ; ft ← fieldType
@@ -82,19 +84,19 @@ constant       = do { try (symbol thrift "const")
                     ; symbol thrift "="
                     ; v ← constValue
                     ; listSeparator
-                    ; return $ T.constant ft ident v
+                    ; return $ T.Const ft ident v
                     }
 
 typedef        = do { try (symbol thrift "typedef")
                     ; dt ← fieldType
                     ; ident ← identifier thrift
-                    ; return $ T.typedef dt ident
+                    ; return $ T.Typedef dt ident
                     }
 
 enum           = do { try (symbol thrift "enum")
                     ; ident ← identifier thrift
                     ; bindings ← braces thrift (enumBinding `sepEndBy` listSeparator)
-                    ; return $ T.enum ident bindings
+                    ; return $ T.Enum ident bindings
                     }
 
 enumBinding    = (,) <$> identifier thrift <*> optionMaybe (symbol thrift "=" *> intConstant)
@@ -102,19 +104,19 @@ enumBinding    = (,) <$> identifier thrift <*> optionMaybe (symbol thrift "=" *>
 struct         = do { try (symbol thrift "struct")
                     ; ident ← identifier thrift
                     ; fields ← braces thrift fields
-                    ; return $ T.struct ident fields
+                    ; return $ T.Struct ident fields
                     }
 
 union          = do { try (symbol thrift "union")
                     ; ident ← identifier thrift
                     ; fields ← braces thrift fields
-                    ; return $ T.union ident fields
+                    ; return $ T.Union ident fields
                     }
 
 exception      = do { try (symbol thrift "exception")
                     ; ident ← identifier thrift
                     ; fields ← braces thrift fields
-                    ; return $ T.exception ident fields
+                    ; return $ T.Exception ident fields
                     }
 
 service        = do { try (symbol thrift "service")
@@ -124,14 +126,14 @@ service        = do { try (symbol thrift "service")
                                                ; return ident
                                                })
                     ; fns ← braces thrift (function `sepEndBy` listSeparator)
-                    ; return $ T.service ident super fns
+                    ; return $ T.Service ident super fns
                     }
 
 --- Fields
 
 fields         = (field `sepEndBy` listSeparator)
 
-field          = T.field <$> optionMaybe (string2int <$> many1 digit <* symbol thrift ":")
+field          = T.Field <$> optionMaybe (string2int <$> many1 digit <* symbol thrift ":")
                          <*> optionMaybe (   do try (symbol thrift "required"); return T.Required
                                          <|> do try (symbol thrift "optional"); return T.Optional)
                          <*> fieldType
@@ -140,7 +142,7 @@ field          = T.field <$> optionMaybe (string2int <$> many1 digit <* symbol t
 
 --- Functions
 
-function       = T.function <$> option False (do try (symbol thrift "oneway"); return True)
+function       = T.Function <$> option False (do try (symbol thrift "oneway"); return True)
                             <*> functionType
                             <*> identifier thrift
                             <*> parens thrift fields
@@ -148,6 +150,7 @@ function       = T.function <$> option False (do try (symbol thrift "oneway"); r
 
 functionType   = do { try (symbol thrift "void"); return T.LtVoid }
              <|> T.LtReturn <$> fieldType
+             <?> "Unrecorgnised function return type"
 
 --- Types
 

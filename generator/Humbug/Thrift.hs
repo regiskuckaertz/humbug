@@ -10,9 +10,7 @@ module Humbug.Thrift
     FunctionType(..),
     Throws,
     FieldType(..),
-    ContainerType(..),
     ConstValue(..),
-    BaseType(..),
     Literal,
     Identifier
   ) where
@@ -55,28 +53,22 @@ data FunctionType = LtVoid | LtReturn FieldType deriving Show
 
 type Throws = [Field]
 
-data FieldType = FtNamed Identifier
-               | FtBase BaseType
-               | FtContainer ContainerType
+data FieldType =  FtBool
+                | FtByte
+                | FtInt8
+                | FtInt16
+                | FtInt32
+                | FtInt64
+                | FtDouble
+                | FtString
+                | FtBinary
+                | FtMap FieldType FieldType
+                | FtSet FieldType
+                | FtList FieldType
+                | FtNamed Identifier
                deriving Show
 
-data BaseType = BtBool
-              | BtByte
-              | BtInt8
-              | BtInt16
-              | BtInt32
-              | BtInt64
-              | BtDouble
-              | BtString
-              | BtBinary
-              deriving Show
-
-data ContainerType = CtMap FieldType FieldType
-                   | CtSet FieldType
-                   | CtList FieldType
-                   deriving Show
-
-data ConstValue = CvInt Integer
+data ConstValue = CvInt Int
                 | CvDouble Double
                 | CvLiteral Literal
                 | CvNamed Identifier
