@@ -1,20 +1,21 @@
 {-# LANGUAGE UnicodeSyntax #-}
 
 module Main where
-
-import Control.Monad((>=>), guard)
-import Control.Monad.IO.Class
-import Control.Monad.Except
-import Control.Monad.State.Strict(StateT)
-import Humbug.Compile
-import Humbug.Print
-import Humbug.Scala
-import Humbug.Thrift
-import Humbug.Tokenize
-import Humbug.Types
-import Data.Foldable(foldrM)
-import Data.List(uncons, intersperse, isSuffixOf)
-import System.Directory
+--------------------------------------------------------------------------------
+import           Control.Monad             ((>=>), guard)
+import           Control.Monad.IO.Class
+import           Control.Monad.Except
+import           Control.Monad.State.Strict(StateT)
+import qualified Data.Map.Strict as Map
+import           Data.Foldable             (foldrM)
+import           Data.List                 (uncons, intersperse, isSuffixOf)
+import           Humbug.Compile
+import           Humbug.Print
+import           Humbug.Scala
+import           Humbug.Thrift
+import           Humbug.Tokenize
+import           Humbug.Types
+import           System.Directory
   ( getCurrentDirectory
   , setCurrentDirectory
   , createDirectoryIfMissing
@@ -22,9 +23,9 @@ import System.Directory
   , listDirectory
   , canonicalizePath
   )
-import System.Environment(getArgs)
-import System.FilePath.Posix(makeRelative, takeDirectory, (</>))
-import qualified Data.Map.Strict as Map
+import           System.Environment       (getArgs)
+import           System.FilePath.Posix    (makeRelative, takeDirectory, (</>))
+--------------------------------------------------------------------------------
 
 isInclude ∷ Header → Bool
 isInclude (Include _) = True

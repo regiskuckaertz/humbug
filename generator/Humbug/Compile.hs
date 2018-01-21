@@ -3,14 +3,15 @@
 module Humbug.Compile
 ( compile
 ) where
-
-import Control.Arrow((&&&))
+--------------------------------------------------------------------------------
+import Control.Arrow        ((&&&))
 import Data.Functor.Foldable(Fix(..), para, unfix)
-import Data.List(partition, unzip)
-import Data.Tuple(swap)
+import Data.List            (partition, unzip)
+import Data.Tuple           (swap)
 import Humbug.Scala
 import Humbug.Thrift
 import Humbug.Types
+--------------------------------------------------------------------------------
 
 compile ∷ Thrift → [Stmt]
 compile = para compile'

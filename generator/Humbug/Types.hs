@@ -4,12 +4,13 @@ module Humbug.Types
 ( Eval
 , runEval
 ) where
-
-import Control.Monad.State.Strict(StateT, runStateT)
-import Control.Monad.Trans.Except
-import Humbug.Scala(Name)
-import Text.ParserCombinators.Parsec.Error
+--------------------------------------------------------------------------------
+import           Control.Monad.State.Strict(StateT, runStateT)
+import           Control.Monad.Trans.Except
 import qualified Data.Map as Map
+import           Humbug.Scala              (Name)
+import           Text.ParserCombinators.Parsec.Error
+--------------------------------------------------------------------------------
 
 type State = Map.Map FilePath (Name, [Name])
 

@@ -3,15 +3,16 @@
 module Humbug.Tokenize
 ( tokenize
 ) where
-
-import Control.Monad.IO.Class
-import Control.Monad.Except
-import Humbug.Types
-import Humbug.Utils.Strings
-import Text.ParserCombinators.Parsec
-import Text.ParserCombinators.Parsec.Token
-import Text.Parsec.Language(LanguageDef, javaStyle)
+--------------------------------------------------------------------------------
+import           Control.Monad.IO.Class
+import           Control.Monad.Except
 import qualified Humbug.Thrift as T
+import           Humbug.Types
+import           Humbug.Utils.Strings
+import           Text.ParserCombinators.Parsec
+import           Text.ParserCombinators.Parsec.Token
+import           Text.Parsec.Language(LanguageDef, javaStyle)
+--------------------------------------------------------------------------------
 
 tokenize ∷ FilePath → Eval T.Thrift
 tokenize t     = do

@@ -3,11 +3,12 @@
 module Humbug.Print
 ( printScala
 ) where
-
-import Data.Functor.Foldable(cata)
+--------------------------------------------------------------------------------
+import Data.Functor.Foldable   (cata)
 import Humbug.Scala
-import Prelude hiding(print)
+import Prelude          hiding (print)
 import Text.PrettyPrint
+--------------------------------------------------------------------------------
 
 printScala ∷ Stmt → String
 printScala = render . cata print
