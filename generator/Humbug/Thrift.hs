@@ -41,11 +41,16 @@ data Definition = Const FieldType Identifier ConstValue
                 | Service Identifier (Maybe Identifier) [Function]
                 deriving Show
 
-data Field = Field (Maybe FieldID) (Maybe FieldReq) FieldType Identifier (Maybe ConstValue) deriving Show
+data Field = Field  { fieldId :: (Maybe FieldID)
+                    , fieldReq :: (Maybe FieldReq)
+                    , fieldType :: FieldType
+                    , fieldIdent :: Identifier 
+                    , fieldValue :: (Maybe ConstValue)
+                    } deriving (Eq, Show)
 
 type FieldID = Int
 
-data FieldReq = Required | Optional deriving Show
+data FieldReq = Required | Optional deriving (Eq, Show)
 
 data Function = Function Bool FunctionType Identifier [Field] (Maybe Throws) deriving Show
 
@@ -66,7 +71,7 @@ data FieldType =  FtBool
                 | FtSet FieldType
                 | FtList FieldType
                 | FtNamed Identifier
-               deriving Show
+               deriving (Eq, Show)
 
 data ConstValue = CvInt Int
                 | CvDouble Double
@@ -74,7 +79,7 @@ data ConstValue = CvInt Int
                 | CvNamed Identifier
                 | CvList [ConstValue]
                 | CvMap [(ConstValue, ConstValue)]
-                deriving Show
+                deriving (Eq, Show)
 
 type Literal = String
 
