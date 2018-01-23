@@ -1,18 +1,24 @@
 module Humbug.Thrift
-  ( Thrift(..),
-    Header(..),
-    NamespaceScope(..),
-    Definition(..),
-    Field(..),
-    FieldID(..),
-    FieldReq(..),
-    Function(..),
-    FunctionType(..),
-    Throws,
-    FieldType(..),
-    ConstValue(..),
-    Literal,
-    Identifier
+  ( Thrift(..)
+  , Header(..)
+  , NamespaceScope(..)
+  , Definition(..)
+  , Field(..)
+  , FieldID(..)
+  , FieldReq(..)
+  , Function(..)
+  , FunctionType(..)
+  , Throws
+  , FieldType(..)
+  , ConstValue(..)
+  , Literal
+  , Identifier
+
+  , isConst
+  , isCpp
+  , isInclude
+  , isPackage
+  , isService
   ) where
 
 data Thrift = Thrift { headers :: [Header], definitions :: [Definition] } deriving Show
@@ -84,3 +90,21 @@ data ConstValue = CvInt Int
 type Literal = String
 
 type Identifier = String
+
+isPackage, isCpp, isInclude :: Header -> Bool
+isPackage (Namespace _ _) = True
+isPackage _               = False
+
+isCpp (CppInclude _)      = True
+isCpp _                   = False
+
+isInclude (Include _)     = True
+isInclude _               = False
+
+isConst :: Definition -> Bool
+isConst (Const _ _ _)     = True
+isConst _                 = False
+
+isService :: Definition -> Bool
+isService (Service _ _ _ )= True
+isService _               = False

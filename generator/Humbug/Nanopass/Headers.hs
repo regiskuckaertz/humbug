@@ -1,7 +1,7 @@
 {-# LANGUAGE TupleSections #-}
 
 module Humbug.Nanopass.Headers
-  ( cleanCpp
+  ( cleanup
   , fiscionH
   , fiscionD
   ) where
@@ -18,26 +18,15 @@ import Humbug.Types
 import System.FilePath.Posix(makeRelative, takeBaseName, (</>))
 --------------------------------------------------------------------------------
 
-cleanCpp :: Thrift -> Thrift
-cleanCpp t = t { headers = filter (not . isCpp) $ headers t }
+cleanup :: Thrift -> Thrift
+cleanup t = t { headers = filter (not . isCpp) $ headers t 
+              , definitions = filter (not . isService) $ definitions t }
 
 fiscionH :: Thrift -> ([Header], [Header])
 fiscionH = partition isPackage . headers
 
 fiscionD :: Thrift -> ([Definition], [Definition])
 fiscionD = partition isConst . definitions
-
-isPackage (Namespace _ _) = True
-isPackage _               = False
-
-isCpp (CppInclude _)      = True
-isCpp _                   = False
-
-isInclude (Include _)     = True
-isInclude _               = False
-
-isConst (Const _ _ _)     = True
-isConst _                 = False
 
 includes :: FilePath -> [Header] -> Eval [Thrift]
 includes root = traverse $ tokenize . (root </>) . (\(Include f) -> f)
