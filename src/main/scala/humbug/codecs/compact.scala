@@ -4,7 +4,7 @@ package codecs
 import scodec.{ Attempt, codecs ⇒ C, Codec, Err }
 import scodec.bits.ByteVector
 
-package object binary {
+package object compact {
   import TFieldType._
 
   implicit val int8 = C.int8
