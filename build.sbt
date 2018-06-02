@@ -1,19 +1,18 @@
 import com.typesafe.sbt.SbtScalariform.ScalariformKeys
 import scalariform.formatter.preferences._
 
-name := "thrift"
+name := "humbug"
 
 version := "0.1"
 
-scalaVersion := "2.12.3"
+scalaVersion := "2.12.6"
 
 scalacOptions ++= Seq("-feature", "-language:higherKinds")
 
 libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck"    % "1.13.4" % "test",
   "org.scodec"     %% "scodec-bits"   % "1.1.5",
-  "org.scodec"     %% "scodec-core"   % "1.10.3",
-  "com.chuusai"    %% "shapeless"     % "2.3.2"
+  "org.scodec"     %% "scodec-core"   % "1.10.3"
 )
 
 resolvers ++= Seq(
@@ -30,3 +29,11 @@ val preferences =
     .setPreference(RewriteArrowSymbols, true)
 
 Seq(preferences)
+
+Test / testOptions += Tests.Argument(
+  TestFrameworks.ScalaCheck, 
+  "-maxSize", "5", 
+  "-minSuccessfulTests", "33", 
+  "-workers", "1", 
+  "-verbosity", "1"
+)
