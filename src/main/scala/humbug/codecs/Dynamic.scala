@@ -10,6 +10,8 @@ final case object TyI32 extends Type[Int]
 final case object TyI64 extends Type[Long]
 final case object TyString extends Type[String]
 final case object TyStruct extends Type[Map[Short, Dynamic]]
+final case object TyUnion extends Type[(Short, Dynamic)]
+final case class TyTypeDef[A](ta: Type[A]) extends Type[A]
 final case class TyList[A](ta: Type[A]) extends Type[List[A]]
 final case class TySet[A](ta: Type[A]) extends Type[Set[A]]
 final case class TyOpt[A](ta: Type[A]) extends Type[Option[A]]
@@ -21,18 +23,20 @@ final case class Dyn[A](value: A, typ: Type[A]) extends Dynamic
 
 object Dynamic {
   def tequal[A, B](ta: Type[A], tb: Type[B]): Option[A ⇒ B] = (ta, tb) match {
-    case (TyBool, TyBool)         ⇒ Some(identity(_))
-    case (TyByte, TyByte)         ⇒ Some(identity(_))
-    case (TyDouble, TyDouble)     ⇒ Some(identity(_))
-    case (TyI16, TyI16)           ⇒ Some(identity(_))
-    case (TyI32, TyI32)           ⇒ Some(identity(_))
-    case (TyI64, TyI64)           ⇒ Some(identity(_))
-    case (TyString, TyString)     ⇒ Some(identity[String](_))
-    case (TyStruct, TyStruct)     ⇒ Some(identity(_))
-    case (TyList(ta), TyList(tb)) ⇒ tequal(ta, tb).map { cst ⇒ la ⇒ la.map(cst) }
-    case (TySet(ta), TySet(tb))   ⇒ tequal(ta, tb).map { cst ⇒ sa: Set[_] ⇒ sa.map(cst) }
-    case (TyOpt(ta), TyOpt(tb))   ⇒ tequal(ta, tb).map { cst ⇒ oa: Option[_] ⇒ oa.map(cst) }
-    case (TyDyn, TyDyn)           ⇒ Some(identity(_))
+    case (TyBool, TyBool)               ⇒ Some(identity(_))
+    case (TyByte, TyByte)               ⇒ Some(identity(_))
+    case (TyDouble, TyDouble)           ⇒ Some(identity(_))
+    case (TyI16, TyI16)                 ⇒ Some(identity(_))
+    case (TyI32, TyI32)                 ⇒ Some(identity(_))
+    case (TyI64, TyI64)                 ⇒ Some(identity(_))
+    case (TyString, TyString)           ⇒ Some(identity[String](_))
+    case (TyStruct, TyStruct)           ⇒ Some(identity(_))
+    case (TyUnion, TyUnion)             ⇒ Some(identity(_))
+    case (TyTypeDef(ta), TyTypeDef(tb)) ⇒ tequal(ta, tb).map { cst ⇒ la ⇒ cst(la) }
+    case (TyList(ta), TyList(tb))       ⇒ tequal(ta, tb).map { cst ⇒ la ⇒ la.map(cst) }
+    case (TySet(ta), TySet(tb))         ⇒ tequal(ta, tb).map { cst ⇒ sa: Set[_] ⇒ sa.map(cst) }
+    case (TyOpt(ta), TyOpt(tb))         ⇒ tequal(ta, tb).map { cst ⇒ oa: Option[_] ⇒ oa.map(cst) }
+    case (TyDyn, TyDyn)                 ⇒ Some(identity(_))
     case (TyMap(tka, tva), TyMap(tkb, tvb)) ⇒ for {
       castk ← tequal(tka, tkb)
       castv ← tequal(tva, tvb)

@@ -1,10 +1,11 @@
 package test.fixtures
 
-import humbug.codecs.TEnumCodec
+import humbug._
+import humbug.codecs._
 import org.scalacheck.{ Gen, Arbitrary }
 import scala.util.Try
 
-object ContentType extends Enumeration {
+object ContentType extends Enumeration with TEnum {
   type ContentType = Value
 
   val ARTICLE = Value(0)

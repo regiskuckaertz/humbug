@@ -1,7 +1,9 @@
 package humbug
 package codecs
 
-trait TTypeDefCodec[A, B] {
-  def encode: A ⇒ B
-  def decode: B ⇒ A
+trait TTypeDefCodec[A] {
+  type Rep
+  def typeRep: Type[Rep]
+  def encode: A ⇒ Rep
+  def decode: Rep ⇒ A
 }
