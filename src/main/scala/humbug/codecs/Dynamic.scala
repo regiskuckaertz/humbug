@@ -1,7 +1,7 @@
 package humbug
 package codecs
 
-sealed abstract class Type[T]
+sealed abstract class Type[T] extends Product with Serializable
 case object TyBool extends Type[Boolean]
 case object TyByte extends Type[Byte]
 case object TyDouble extends Type[Double]
@@ -16,7 +16,7 @@ case class TyOpt[A](ta: Type[A]) extends Type[Option[A]]
 case class TyMap[K, V](tk: Type[K], tv: Type[V]) extends Type[Map[K, V]]
 case object TyDyn extends Type[Dynamic]
 
-sealed abstract class Dynamic
+sealed abstract class Dynamic extends Product with Serializable
 case class Dyn[A](value: A, typ: Type[A]) extends Dynamic
 
 object Dynamic {
