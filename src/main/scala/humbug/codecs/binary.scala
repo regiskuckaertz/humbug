@@ -25,16 +25,13 @@ package object binary {
   implicit val double = C.double
 
   implicit val boolean: Codec[Boolean] =
-    int8.exmap(
+    int8.narrow(
       {
         case 0 ⇒ Attempt.successful(false)
         case 1 ⇒ Attempt.successful(true)
         case _ ⇒ Attempt.failure(Err("Unable to decode boolean"))
       },
-      {
-        case false ⇒ Attempt.successful(0)
-        case true  ⇒ Attempt.successful(1)
-      }
+      if (_) 1 else 0
     )
 
   implicit def list[A: Codec: TFieldType]: Codec[List[A]] =
