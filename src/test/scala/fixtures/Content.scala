@@ -18,9 +18,7 @@ case class Content(
     //5: optional CapiDateTime webPublicationDate
     references: List[Reference],
     rights:     Option[Rights]
-) extends TStruct {
-  override def leftovers = Map.empty[FieldID, Dynamic]
-}
+) extends TStruct
 
 object Content {
   import Arbitrary._

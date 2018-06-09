@@ -5,5 +5,5 @@ trait TEnum
 trait TTypeDef extends Any
 
 abstract class TStruct protected {
-  def leftovers: Fields
+  def leftovers: Fields = Map.empty
 }

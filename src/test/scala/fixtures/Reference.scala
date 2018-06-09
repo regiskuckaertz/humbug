@@ -9,9 +9,7 @@ import org.scalacheck.Arbitrary
 case class Reference(
     id:     String,
     `type`: String
-) extends TStruct {
-  override def leftovers = Map.empty[FieldID, Dynamic]
-}
+) extends TStruct
 
 object Reference {
   import Arbitrary._

@@ -10,9 +10,7 @@ case class Rights(
     syndicatable:          Boolean,
     subscriptionDatabases: Option[Boolean] = Some(false),
     developerCommunity:    Option[Boolean] = None
-) extends TStruct {
-  def leftovers: Map[FieldID, Dynamic] = Map.empty
-}
+) extends TStruct
 
 object Rights {
   import Arbitrary._
