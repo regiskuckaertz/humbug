@@ -44,7 +44,7 @@ object Content {
       10.toShort -> Dyn(Nil, TyList(TyStruct))
     )
 
-    def encode = v ⇒ Map(
+    def encode = v ⇒ defaults ++ v.leftovers ++ Map(
       1.toShort -> Dyn(v.id, TyString),
       2.toShort -> Dyn(E2.encode(v.`type`), TyI32),
       3.toShort -> Dyn(v.sectionId, TyString),

@@ -33,7 +33,7 @@ object Rights {
       -1.toShort -> Dyn(None, TyOpt(TyBool))
     )
 
-    def encode = r ⇒ Map(
+    def encode = r ⇒ defaults ++ r.leftovers ++ Map(
       1.toShort -> Dyn(r.syndicatable, TyBool),
       2.toShort -> Dyn(r.subscriptionDatabases, TyOpt(TyBool)),
       -1.toShort -> Dyn(r.developerCommunity, TyOpt(TyBool))

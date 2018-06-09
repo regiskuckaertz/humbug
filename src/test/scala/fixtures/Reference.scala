@@ -1,6 +1,6 @@
 package test.fixtures
 
-import humbug.TStruct
+import humbug._
 import humbug.codecs._
 
 import org.scalacheck.Gen
@@ -9,7 +9,9 @@ import org.scalacheck.Arbitrary
 case class Reference(
     id:     String,
     `type`: String
-)
+) extends TStruct {
+  override def leftovers = Map.empty[FieldID, Dynamic]
+}
 
 object Reference {
   import Arbitrary._
@@ -26,7 +28,7 @@ object Reference {
 
     final val defaults = Map.empty
 
-    def encode = r ⇒ Map(
+    def encode = r ⇒ defaults ++ r.leftovers ++ Map(
       1.toShort -> Dyn(r.id, TyString),
       2.toShort -> Dyn(r.`type`, TyString)
     )
