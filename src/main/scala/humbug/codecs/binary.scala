@@ -54,4 +54,15 @@ package object binary {
   implicit def typedef[A <: TTypeDef, R](implicit A: TTypeDefCodec.Aux[A, R], C: Codec[R]): Codec[A] =
     C.xmap(A.decode, A.encode)
 
+  implicit def struct[A <: TStruct](implicit A: TStructCodec[A]): Codec[A] =
+    C.list(int16 ~ dynamic).narrow(
+      { a ⇒ Attempt.fromOption(A.decode(Map(a: _*)), Err(s"Cannot decode $a")) },
+      { a: A ⇒ A.encode(a).toList }
+    ).dropRight(stop)
+
+  implicit def union[A <: TUnion](implicit A: TUnionCodec[A]): Codec[A] =
+    (int16 ~ dynamic).narrow(
+      a ⇒ Attempt.fromOption(A.decode(a._1, a._2), Err(s"Cannot decode $a")),
+      A.encode
+    ).dropRight(stop)
 }
