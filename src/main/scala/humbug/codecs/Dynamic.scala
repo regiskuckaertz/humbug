@@ -9,7 +9,7 @@ case object TyI16 extends Type[Short]
 case object TyI32 extends Type[Int]
 case object TyI64 extends Type[Long]
 case object TyString extends Type[String]
-case object TyStruct extends Type[TStruct]
+case object TyStruct extends Type[Map[Short, Dynamic]]
 case class TyList[A](ta: Type[A]) extends Type[List[A]]
 case class TySet[A](ta: Type[A]) extends Type[Set[A]]
 case class TyOpt[A](ta: Type[A]) extends Type[Option[A]]
@@ -28,7 +28,7 @@ object Dynamic {
     case (TyI32, TyI32)           ⇒ Some(identity(_))
     case (TyI64, TyI64)           ⇒ Some(identity(_))
     case (TyString, TyString)     ⇒ Some(identity[String](_))
-    case (TyStruct, TyStruct)     ⇒ Some(identity[TStruct](_))
+    case (TyStruct, TyStruct)     ⇒ Some(identity(_))
     case (TyList(ta), TyList(tb)) ⇒ tequal(ta, tb).map { cst ⇒ la ⇒ la.map(cst) }
     case (TySet(ta), TySet(tb))   ⇒ tequal(ta, tb).map { cst ⇒ sa: Set[_] ⇒ sa.map(cst) }
     case (TyOpt(ta), TyOpt(tb))   ⇒ tequal(ta, tb).map { cst ⇒ oa: Option[_] ⇒ oa.map(cst) }
