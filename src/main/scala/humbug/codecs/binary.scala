@@ -14,7 +14,7 @@ package object binary {
 
   implicit def enum[E <: TEnum](implicit E: TEnumCodec[E]): Codec[E] =
     int32.exmap(
-      { i ⇒ Attempt.fromOption(E.decode.lift(i), Err("Unable to decode enum")) },
+      { i ⇒ Attempt.fromOption(E.decode(i), Err(s"Cannot decode $i")) },
       { e ⇒ Attempt.successful(E.encode(e)) }
     )
 
@@ -50,4 +50,8 @@ package object binary {
       .dropLeft(C.constant(ByteVector.fromInt(TFieldType[V].value, 1)))
       .dropLeft(C.listOfN(int32, Codec[K] ~ Codec[V]))
       .xmap(_.toMap, _.toList)
+
+  implicit def typedef[A <: TTypeDef, R](implicit A: TTypeDefCodec.Aux[A, R], C: Codec[R]): Codec[A] =
+    C.xmap(A.decode, A.encode)
+
 }
