@@ -4,6 +4,6 @@ trait TEnum
 
 trait TTypeDef extends Any
 
-trait TStruct
-
-trait TUnion
+abstract class TStruct {
+  def leftovers: Fields
+}

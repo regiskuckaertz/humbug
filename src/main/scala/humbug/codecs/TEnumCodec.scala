@@ -1,7 +1,7 @@
 package humbug
 package codecs
 
-trait TEnumCodec[A <: TEnum] {
-  def encode: Function1[A, Int]
-  def decode: PartialFunction[Int, A]
+trait TEnumCodec[A] {
+  def encode: A ⇒ Int
+  def decode: Int ⇒ Option[A]
 }

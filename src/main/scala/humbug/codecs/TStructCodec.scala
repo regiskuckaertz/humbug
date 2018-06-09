@@ -1,10 +1,9 @@
 package humbug
 package codecs
 
-import shapeless._
-
 trait TStructCodec[A] {
-  def defaults: HMap[TFieldCodec]
-  def encode: A ⇒ HMap[TFieldCodec]
-  def decode: HMap[TFieldCodec] ⇒ Option[A]
+  def fieldIds: List[FieldID]
+  def defaults: Fields
+  def encode: A ⇒ Fields
+  def decode: Fields ⇒ Option[A]
 }
