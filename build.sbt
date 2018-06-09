@@ -7,12 +7,13 @@ version := "0.1"
 
 scalaVersion := "2.12.6"
 
-scalacOptions ++= Seq("-feature", "-language:higherKinds")
+scalacOptions ++= Seq("-feature", "-language:higherKinds", "-Ypartial-unification")
 
 libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck"    % "1.13.4" % "test",
   "org.scodec"     %% "scodec-bits"   % "1.1.5",
-  "org.scodec"     %% "scodec-core"   % "1.10.3"
+  "org.scodec"     %% "scodec-core"   % "1.10.3",
+  "org.typelevel"  %% "cats-core"     % "1.1.0"
 )
 
 resolvers ++= Seq(
