@@ -2,22 +2,22 @@ package humbug
 package codecs
 
 sealed abstract class Type[T] extends Product with Serializable
-case object TyBool extends Type[Boolean]
-case object TyByte extends Type[Byte]
-case object TyDouble extends Type[Double]
-case object TyI16 extends Type[Short]
-case object TyI32 extends Type[Int]
-case object TyI64 extends Type[Long]
-case object TyString extends Type[String]
-case object TyStruct extends Type[Map[Short, Dynamic]]
-case class TyList[A](ta: Type[A]) extends Type[List[A]]
-case class TySet[A](ta: Type[A]) extends Type[Set[A]]
-case class TyOpt[A](ta: Type[A]) extends Type[Option[A]]
-case class TyMap[K, V](tk: Type[K], tv: Type[V]) extends Type[Map[K, V]]
-case object TyDyn extends Type[Dynamic]
+final case object TyBool extends Type[Boolean]
+final case object TyByte extends Type[Byte]
+final case object TyDouble extends Type[Double]
+final case object TyI16 extends Type[Short]
+final case object TyI32 extends Type[Int]
+final case object TyI64 extends Type[Long]
+final case object TyString extends Type[String]
+final case object TyStruct extends Type[Map[Short, Dynamic]]
+final case class TyList[A](ta: Type[A]) extends Type[List[A]]
+final case class TySet[A](ta: Type[A]) extends Type[Set[A]]
+final case class TyOpt[A](ta: Type[A]) extends Type[Option[A]]
+final case class TyMap[K, V](tk: Type[K], tv: Type[V]) extends Type[Map[K, V]]
+final case object TyDyn extends Type[Dynamic]
 
 sealed abstract class Dynamic extends Product with Serializable
-case class Dyn[A](value: A, typ: Type[A]) extends Dynamic
+final case class Dyn[A](value: A, typ: Type[A]) extends Dynamic
 
 object Dynamic {
   def tequal[A, B](ta: Type[A], tb: Type[B]): Option[A ⇒ B] = (ta, tb) match {
