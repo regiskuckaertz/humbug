@@ -32,12 +32,12 @@ object Dynamic {
     case (TyList(ta), TyList(tb)) ⇒ tequal(ta, tb).map { cst ⇒ la ⇒ la.map(cst) }
     case (TySet(ta), TySet(tb))   ⇒ tequal(ta, tb).map { cst ⇒ sa: Set[_] ⇒ sa.map(cst) }
     case (TyOpt(ta), TyOpt(tb))   ⇒ tequal(ta, tb).map { cst ⇒ oa: Option[_] ⇒ oa.map(cst) }
+    case (TyDyn, TyDyn)           ⇒ Some(identity(_))
     case (TyMap(tka, tva), TyMap(tkb, tvb)) ⇒ for {
       castk ← tequal(tka, tkb)
       castv ← tequal(tva, tvb)
     } yield { mkv: Map[_, _] ⇒ mkv.map { case (k, v) ⇒ castk(k) -> castv(v) } }
-    case (TyDyn, TyDyn) ⇒ Some(identity(_))
-    case _              ⇒ None
+    case _ ⇒ None
   }
 
   def cast[A](dyn: Dynamic, ta: Type[A]): Option[A] = dyn match {
