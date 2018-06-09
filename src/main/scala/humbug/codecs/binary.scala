@@ -7,8 +7,8 @@ import scodec.bits.ByteVector
 package object binary {
   import TFieldType._
 
-  implicit val int8 = C.int8
-  implicit val int16 = C.int16
+  implicit val int8 = C.byte
+  implicit val int16 = C.short16
   implicit val int32 = C.int32
   implicit val int64 = C.int64
 
