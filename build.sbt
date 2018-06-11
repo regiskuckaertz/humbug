@@ -7,7 +7,7 @@ version := "0.1"
 
 scalaVersion := "2.12.6"
 
-scalacOptions ++= Seq("-feature", "-language:higherKinds", "-Ypartial-unification")
+scalacOptions ++= Seq("-feature", "-language:higherKinds", "-Ypartial-unification", "-language:existentials")
 
 libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck"    % "1.13.4" % "test",
