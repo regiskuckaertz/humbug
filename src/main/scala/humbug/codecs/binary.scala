@@ -2,64 +2,93 @@ package humbug
 package codecs
 
 import scodec.{ Attempt, codecs ⇒ C, Codec, Err }
-import scodec.bits.ByteVector
 
 package object binary {
-  import TFieldType._
+  val bool: Codec[Boolean] = C.ignore(7).dropLeft(C.bool)
+  val byte: Codec[Byte] = C.byte
+  val int8: Codec[Int] = C.int8
+  val int16: Codec[Short] = C.short16
+  val int32: Codec[Int] = C.int32
+  val int64: Codec[Long] = C.int64
+  val double: Codec[Double] = C.double
+  val string: Codec[String] = C.variableSizeBytes(int32, C.utf8)
 
-  implicit val int8 = C.byte
-  implicit val int16 = C.short16
-  implicit val int32 = C.int32
-  implicit val int64 = C.int64
+  trait TypeAndCodec {
+    type A
+    def codec: Codec[A]
+    def `type`: Type[A]
+  }
 
-  implicit def enum[E <: TEnum](implicit E: TEnumCodec[E]): Codec[E] =
-    int32.exmap(
-      { i ⇒ Attempt.fromOption(E.decode(i), Err(s"Cannot decode $i")) },
-      { e ⇒ Attempt.successful(E.encode(e)) }
-    )
+  def codecOf: Int ⇒ Option[TypeAndCodec] = {
+    case 2  ⇒ Some(new TypeAndCodec { type A = Boolean; val codec = bool; val `type` = TyBool })
+    case 3  ⇒ Some(new TypeAndCodec { type A = Byte; val codec = byte; val `type` = TyByte })
+    case 4  ⇒ Some(new TypeAndCodec { type A = Double; val codec = double; val `type` = TyDouble })
+    case 6  ⇒ Some(new TypeAndCodec { type A = Short; val codec = int16; val `type` = TyI16 })
+    case 8  ⇒ Some(new TypeAndCodec { type A = Int; val codec = int32; val `type` = TyI32 })
+    case 10 ⇒ Some(new TypeAndCodec { type A = Long; val codec = int64; val `type` = TyI64 })
+    case 11 ⇒ Some(new TypeAndCodec { type A = String; val codec = string; val `type` = TyString })
+    case 12 ⇒ Some(new TypeAndCodec { type A = Fields; val codec = struct; val `type` = TyStruct })
+    case _  ⇒ None
+  }
 
-  implicit val byteVector: Codec[ByteVector] = C.variableSizeBytes(int32, C.bytes)
+  // TODO: list of lists, list of sets, list of maps
+  def list: Codec[Dynamic] = int8.flatZip { discriminator ⇒
+    codecOf(discriminator) match {
+      case Some(tac) ⇒ widenDynamic[List[tac.A]](C.listOfN(C.int32, tac.codec), TyList(tac.`type`))
+      case None      ⇒ C.fail[Dynamic](Err(s"Type $discriminator isn't supported yet"))
+    }
+  }.xmap(_._2, { case d @ Dyn(_, typ) ⇒ (typ.typeId, d) })
 
-  implicit val string: Codec[String] = C.variableSizeBytes(int32, C.utf8)
+  // TODO: list of lists, list of sets, list of maps
+  def set: Codec[Dynamic] = int8.flatZip { discriminator ⇒
+    codecOf(discriminator) match {
+      case Some(tac) ⇒ widenDynamic[Set[tac.A]](C.listOfN(C.int32, tac.codec).xmap(_.toSet, _.toList), TySet(tac.`type`))
+      case None      ⇒ C.fail[Dynamic](Err(s"Type $discriminator isn't supported yet"))
+    }
+  }.xmap(_._2, { case d @ Dyn(_, typ) ⇒ (typ.typeId, d) })
 
-  implicit val double = C.double
+  // TODO: list of lists, list of sets, list of maps
+  def map: Codec[Dynamic] = (int8 ~ int8).flatZip {
+    case (discriminatork, discriminatorv) ⇒
+      (codecOf(discriminatork), codecOf(discriminatorv)) match {
+        case (Some(tack), Some(tacv)) ⇒
+          widenDynamic[Map[tack.A, tacv.A]](C.listOfN(C.int32, tack.codec ~ tacv.codec).xmap(_.toMap, _.toList), TyMap(tack.`type`, tacv.`type`))
+        case _ ⇒ C.fail[Dynamic](Err(s"Type $discriminatork/$discriminatorv isn't supported yet"))
+      }
+  }.xmap(_._2, { case d @ Dyn(_, typ) ⇒ ((typ.typeId), d) })
 
-  implicit val boolean: Codec[Boolean] =
-    int8.narrow(
-      {
-        case 0 ⇒ Attempt.successful(false)
-        case 1 ⇒ Attempt.successful(true)
-        case _ ⇒ Attempt.failure(Err("Unable to decode boolean"))
-      },
-      if (_) 1 else 0
-    )
+  val field: Codec[Dynamic] = C.discriminated[Dynamic].by(int8)
+    .typecase(2, widenDynamic(bool, TyBool))
+    .typecase(3, widenDynamic(byte, TyByte))
+    .typecase(4, widenDynamic(double, TyDouble))
+    .typecase(6, widenDynamic(int16, TyI16))
+    .typecase(8, widenDynamic(int32, TyI32))
+    .typecase(10, widenDynamic(int64, TyI64))
+    .typecase(11, widenDynamic(string, TyString))
+    .typecase(12, widenDynamic(struct, TyStruct))
+    .typecase(13, map)
+    .typecase(14, set)
+    .typecase(15, list)
 
-  implicit def list[A: Codec: TFieldType]: Codec[List[A]] =
-    C.constant(ByteVector.fromInt(TFieldType[A].value, 1))
-      .dropLeft(C.listOfN(int32, Codec[A]))
+  private def widenDynamic[A](codec: Codec[A], typ: Type[A]): Codec[Dynamic] =
+    codec.widen[Dynamic](Dyn(_, typ), d ⇒ Attempt.fromOption(Dynamic.cast(d, typ), Err(s"Dynamic not a $typ: $d")))
 
-  implicit def set[A: Codec: TFieldType]: Codec[Set[A]] =
-    C.constant(ByteVector.fromInt(TFieldType[A].value, 1))
-      .dropLeft(C.listOfN(int32, Codec[A]).xmap(_.toSet, _.toList))
+  val stop: Codec[Unit] = C.byte.unit(0)
 
-  implicit def map[K: Codec: TFieldType, V: Codec: TFieldType]: Codec[Map[K, V]] =
-    C.constant(ByteVector.fromInt(TFieldType[K].value, 1))
-      .dropLeft(C.constant(ByteVector.fromInt(TFieldType[V].value, 1)))
-      .dropLeft(C.listOfN(int32, Codec[K] ~ Codec[V]))
-      .xmap(_.toMap, _.toList)
+  def struct: Codec[Fields] = ???
 
-  implicit def typedef[A <: TTypeDef, R](implicit A: TTypeDefCodec.Aux[A, R], C: Codec[R]): Codec[A] =
-    C.xmap(A.decode, A.encode)
+  // implicit def typedef[A <: TTypeDef, R](implicit A: TTypeDefCodec.Aux[A, R], C: Codec[R]): Codec[A] =
+  //   C.xmap(A.decode, A.encode)
 
-  implicit def struct[A <: TStruct](implicit A: TStructCodec[A]): Codec[A] =
-    C.list(int16 ~ dynamic).narrow(
-      { a ⇒ Attempt.fromOption(A.decode(Map(a: _*)), Err(s"Cannot decode $a")) },
-      { a: A ⇒ A.encode(a).toList }
-    ).dropRight(stop)
+  // implicit def struct[A <: TStruct](implicit A: TStructCodec[A]): Codec[A] =
+  //   C.list(C.short16 ~ dynamic).narrow(
+  //     { a ⇒ Attempt.fromOption(A.decode(Map(a: _*)), Err(s"Cannot decode $a")) },
+  //     { a: A ⇒ A.encode(a).toList }
+  //   ).dropRight(stop)
 
-  implicit def union[A <: TUnion](implicit A: TUnionCodec[A]): Codec[A] =
-    (int16 ~ dynamic).narrow(
-      a ⇒ Attempt.fromOption(A.decode(a._1, a._2), Err(s"Cannot decode $a")),
-      A.encode
-    ).dropRight(stop)
+  // implicit def union[A <: TUnion](implicit A: TUnionCodec[A]): Codec[A] =
+  //   (C.short16 ~ dynamic).dropRight(stop).narrow(
+  //     a ⇒ Attempt.fromOption(A.decode(a._1, a._2), Err(s"Cannot decode $a")),
+  //     A.encode
+  //   )
 }

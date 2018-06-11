@@ -1,22 +1,22 @@
 package humbug
 package codecs
 
-sealed abstract class Type[T] extends Product with Serializable
-final case object TyBool extends Type[Boolean]
-final case object TyByte extends Type[Byte]
-final case object TyDouble extends Type[Double]
-final case object TyI16 extends Type[Short]
-final case object TyI32 extends Type[Int]
-final case object TyI64 extends Type[Long]
-final case object TyString extends Type[String]
-final case object TyStruct extends Type[Map[Short, Dynamic]]
-final case object TyUnion extends Type[(Short, Dynamic)]
-final case class TyTypeDef[A](ta: Type[A]) extends Type[A]
-final case class TyList[A](ta: Type[A]) extends Type[List[A]]
-final case class TySet[A](ta: Type[A]) extends Type[Set[A]]
-final case class TyOpt[A](ta: Type[A]) extends Type[Option[A]]
-final case class TyMap[K, V](tk: Type[K], tv: Type[V]) extends Type[Map[K, V]]
-final case object TyDyn extends Type[Dynamic]
+sealed abstract class Type[T](val typeId: Int) extends Product with Serializable
+final case object TyBool extends Type[Boolean](2)
+final case object TyByte extends Type[Byte](3)
+final case object TyDouble extends Type[Double](4)
+final case object TyI16 extends Type[Short](6)
+final case object TyI32 extends Type[Int](8)
+final case object TyI64 extends Type[Long](10)
+final case object TyString extends Type[String](11)
+final case object TyStruct extends Type[Map[Short, Dynamic]](12)
+final case object TyUnion extends Type[(Short, Dynamic)](12)
+final case class TyTypeDef[A](ta: Type[A]) extends Type[A](ta.typeId)
+final case class TyList[A](ta: Type[A]) extends Type[List[A]](15)
+final case class TySet[A](ta: Type[A]) extends Type[Set[A]](14)
+final case class TyOpt[A](ta: Type[A]) extends Type[Option[A]](ta.typeId)
+final case class TyMap[K, V](tk: Type[K], tv: Type[V]) extends Type[Map[K, V]](12)
+final case object TyDyn extends Type[Dynamic](0)
 
 sealed abstract class Dynamic extends Product with Serializable
 final case class Dyn[A](value: A, typ: Type[A]) extends Dynamic
